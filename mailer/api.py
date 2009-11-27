@@ -2,7 +2,6 @@
 
 import re
 from datetime import datetime,date,timedelta
-import smtplib
 from email.MIMEText import MIMEText
 from email.MIMEMultipart import MIMEMultipart
 from email.Header import Header
@@ -17,7 +16,7 @@ from django.conf import settings
 __all__ = (
     'send_mail',
     'send_basic_mail',
-    'send_template_mail',  
+    'send_template_mail',
     'mail_managers',
     'mail_managers_template',
     'mail_admins',
