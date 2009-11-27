@@ -21,9 +21,11 @@ __all__ = (
     'mail_managers_template',
     'mail_admins',
     'render_message',
+    'EncodedEmailMessage',
 )
 
 # Python charset => mail header charset mapping
+# TODO: Add more encodings
 CHARSET_MAP = getattr(settings, "EMAIL_HEADER_CHARSET_MAP", {
     # UTF-8
     "utf8": "UTF-8",
@@ -95,26 +97,26 @@ def format_header(name, val, encoding=None):
     
     return name,val
 
-class JPMIMEText(MIMEText):
+class EncodedMIMEText(MIMEText):
     def __setitem__(self, name, val):
         if name.lower() in ('subject', 'to', 'from', 'cc'):
             name,val = format_header(name, val, smart_str(self._charset))
         MIMEText.__setitem__(self, name, val)
 
-class JPMIMEMultipart(MIMEMultipart):
+class EncodedMIMEMultipart(MIMEMultipart):
     def __setitem__(self, name, val):
         if name.lower() in ('subject', 'to', 'from', 'cc'):
             name,val = format_header(name, val, smart_str(self._charset))
         MIMEText.__setitem__(self, name, val)
 
-class JPEmailMessage(mail.EmailMessage):
+class EncodedEmailMessage(mail.EmailMessage):
     def message(self):
         encoding = self.encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
-        msg = JPMIMEText(smart_str(self.body, encoding, 'replace'),
+        msg = EncodedMIMEText(smart_str(self.body, encoding, 'replace'),
                            self.content_subtype, CHARSET_MAP.get(encoding, encoding))
         if self.attachments:
             body_msg = msg
-            msg = JPMIMEMultipart(_subtype=self.multipart_subtype)
+            msg = EncodedMIMEMultipart(_subtype=self.multipart_subtype)
             if self.body:
                 msg.attach(body_msg)
             for attachment in self.attachments:
@@ -148,7 +150,7 @@ def send_basic_mail(subject, body, recipient_list, from_email=settings.SERVER_EM
 
     connection = SMTPConnection(username=auth_user, password=auth_password,
                                 fail_silently=fail_silently)
-    msg = JPEmailMessage(
+    msg = EncodedEmailMessage(
         subject=subject,
         body=body,
         from_email=from_email,
