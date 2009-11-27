@@ -203,7 +203,6 @@ def send_template_mail(template_name, recipient_list, extra_context={},
     メールを送信する
     """
     try:
-        #TODO: logging 
         if not isinstance(recipient_list, list) and not isinstance(recipient_list, tuple):
             recipient_list = [recipient_list]
         
