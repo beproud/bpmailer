@@ -13,6 +13,8 @@ from django import template
 from django.template.loader import render_to_string
 from django.conf import settings
 
+import logging
+
 __version__ = '0.0.1'
 
 __all__ = (
@@ -81,6 +83,8 @@ CHARSET_MAP = getattr(settings, "EMAIL_HEADER_CHARSET_MAP", {
     "iso-2022-jp-ext": "ISO-2022-JP",
 })
 
+logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
+
 def format_header(name, val, encoding=None):
     encoding = encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
     if '\n' in val or '\r' in val:
@@ -144,23 +148,30 @@ class EncodedEmailMessage(mail.EmailMessage):
 def send_basic_mail(subject, body, recipient_list, from_email=settings.SERVER_EMAIL, fail_silently=True,
               fail_silently=False, auth_user=None, auth_password=None, encoding=None):
 
-    from django.core.mail import SMTPConnection
+    try:
+        from django.core.mail import SMTPConnection
 
-    if settings.DEBUG and hasattr(settings, "EMAIL_ALL_FORWARD"):
-        recipient_list = [settings.EMAIL_ALL_FORWARD]
-        from_email = settings.EMAIL_ALL_FORWARD
+        if settings.DEBUG and hasattr(settings, "EMAIL_ALL_FORWARD"):
+            recipient_list = [settings.EMAIL_ALL_FORWARD]
+            from_email = settings.EMAIL_ALL_FORWARD
 
-    connection = SMTPConnection(username=auth_user, password=auth_password,
-                                fail_silently=fail_silently)
-    msg = EncodedEmailMessage(
-        subject=subject,
-        body=body,
-        from_email=from_email,
-        to=to_list,
-    )
-    if encoding is not None:
-        msg.encoding = encoding 
-    return msg.send(fail_silently)
+        connection = SMTPConnection(username=auth_user, password=auth_password,
+                                    fail_silently=False)
+        msg = EncodedEmailMessage(
+            subject=subject,
+            body=body,
+            from_email=from_email,
+            to=to_list,
+        )
+        if encoding is not None:
+            msg.encoding = encoding 
+        return_val = msg.send()
+        log_message(msg, return_val) 
+        return return_val
+    except Exception, e:
+        log_exception("Mail Error")
+        if not fail_silently:
+            raise
 
 def send_mail(subject, message, from_email, recipient_list,
               fail_silently=False, auth_user=None, auth_password=None):
@@ -205,7 +216,8 @@ def send_template_mail(template_name, recipient_list, extra_context={},
             fail_silently=fail_silently,
             encoding=encoding,
         )
-    except:
+    except Exception, e:
+        log_exception("Mail Error")
         if not fail_silently:
             raise
 
@@ -242,3 +254,21 @@ def mail_admins(subject, message, fail_silently=False):
         recipient_list=[a[1] for a in settings.ADMINS],
         fail_silently=fail_silently,
     )
+
+def log_message(msg, sent):
+    message = "%s messages sent.\n" % sent 
+    message += "From: %s\n" % msg.from_email 
+    message += "To: %s\n" % ", ".join(msg.to)
+    message += "Subject: %s\n" % msg.subject
+    message += "Body\n"
+    message += "-"*30 + "\n"
+    message += msg.body
+
+    logger.info(message)
+
+def log_exception(msg=""):
+    msg = msg+"\n" if msg else ""
+    import traceback,sys
+    tb = ''.join(traceback.format_exception(sys.exc_info()[0],
+                    sys.exc_info()[1], sys.exc_info()[2]))
+    logger.exception(msg + tb)
