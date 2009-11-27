@@ -13,6 +13,8 @@ from django import template
 from django.template.loader import render_to_string
 from django.conf import settings
 
+__version__ = '0.0.1'
+
 __all__ = (
     'send_mail',
     'send_basic_mail',
