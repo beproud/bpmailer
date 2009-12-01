@@ -7,25 +7,33 @@ from email.MIMEMultipart import MIMEMultipart
 from email.Header import Header
 from email.Utils import formatdate, parseaddr, formataddr
 
-from django.core import mail
+from django.core import mail as django_mail
 from django.utils.encoding import smart_str
 from django import template
 from django.template.loader import render_to_string
 from django.conf import settings
 
+from django.core.mail import SMTPConnection, BadHeaderError
+
 import logging
 
 __version__ = '0.0.1'
 
+# TODO: Support EmailMultiAlternatives
 __all__ = (
     'send_mail',
     'send_basic_mail',
     'send_template_mail',
+    'send_mass_mail',
     'mail_managers',
     'mail_managers_template',
     'mail_admins',
     'render_message',
-    'EncodedEmailMessage',
+    'EmailMessage',
+    'SafeMIMEText',
+    'SafeMIMEMultipart',
+    'SMTPConnection',
+    'BadHeaderError',
 )
 
 # Python charset => mail header charset mapping
@@ -88,7 +96,7 @@ logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
 def format_header(name, val, encoding=None):
     encoding = encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
     if '\n' in val or '\r' in val:
-        raise mail.BadHeaderError("Header values can't contain newlines (got %r for header %r)" % (val, name)) 
+        raise django_mail.BadHeaderError("Header values can't contain newlines (got %r for header %r)" % (val, name)) 
     if name.lower() in ('to', 'from', 'cc'):
         result = []
         for item in val.split(', '):
@@ -103,26 +111,26 @@ def format_header(name, val, encoding=None):
     
     return name,val
 
-class EncodedMIMEText(MIMEText):
+class SafeMIMEText(MIMEText):
     def __setitem__(self, name, val):
         if name.lower() in ('subject', 'to', 'from', 'cc'):
             name,val = format_header(name, val, smart_str(self._charset))
         MIMEText.__setitem__(self, name, val)
 
-class EncodedMIMEMultipart(MIMEMultipart):
+class SafeMIMEMultipart(MIMEMultipart):
     def __setitem__(self, name, val):
         if name.lower() in ('subject', 'to', 'from', 'cc'):
             name,val = format_header(name, val, smart_str(self._charset))
         MIMEText.__setitem__(self, name, val)
 
-class EncodedEmailMessage(mail.EmailMessage):
+class EmailMessage(django_mail.EmailMessage):
     def message(self):
         encoding = self.encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
-        msg = EncodedMIMEText(smart_str(self.body, encoding, 'replace'),
+        msg = SafeMIMEText(smart_str(self.body, encoding, 'replace'),
                            self.content_subtype, CHARSET_MAP.get(encoding, encoding))
         if self.attachments:
             body_msg = msg
-            msg = EncodedMIMEMultipart(_subtype=self.multipart_subtype)
+            msg = SafeMIMEMultipart(_subtype=self.multipart_subtype)
             if self.body:
                 msg.attach(body_msg)
             for attachment in self.attachments:
@@ -140,7 +148,7 @@ class EncodedEmailMessage(mail.EmailMessage):
         if 'date' not in header_names:
             msg['Date'] = formatdate(localtime=True)
         if 'message-id' not in header_names:
-            msg['Message-ID'] = mail.make_msgid()
+            msg['Message-ID'] = django_mail.make_msgid()
         for name, value in self.extra_headers.items():
             msg[name] = value
         return msg
@@ -157,7 +165,7 @@ def send_basic_mail(subject, body, recipient_list, from_email=settings.SERVER_EM
 
         connection = SMTPConnection(username=auth_user, password=auth_password,
                                     fail_silently=False)
-        msg = EncodedEmailMessage(
+        msg = EmailMessage(
             subject=subject,
             body=body,
             from_email=from_email,
@@ -219,6 +227,26 @@ def send_template_mail(template_name, recipient_list, extra_context={},
         log_exception("Mail Error")
         if not fail_silently:
             raise
+
+def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
+                   auth_password=None):
+    """
+    Given a datatuple of (subject, message, from_email, recipient_list), sends
+    each message to each recipient list. Returns the number of e-mails sent.
+
+    If from_email is None, the DEFAULT_FROM_EMAIL setting is used.
+    If auth_user and auth_password are set, they're used to log in.
+    If auth_user is None, the EMAIL_HOST_USER setting is used.
+    If auth_password is None, the EMAIL_HOST_PASSWORD setting is used.
+
+    Note: The API for this method is frozen. New code wanting to extend the
+    functionality should use the EmailMessage class directly.
+    """
+    connection = SMTPConnection(username=auth_user, password=auth_password,
+                                fail_silently=fail_silently)
+    messages = [EmailMessage(subject, message, sender, recipient)
+                for subject, message, sender, recipient in datatuple]
+    return connection.send_messages(messages)
 
 def mail_managers(subject, message, fail_silently=False):
     if not settings.MANAGERS:
