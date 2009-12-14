@@ -195,8 +195,12 @@ def send_mail(subject, message, from_email, recipient_list,
 
 def render_message(template_name, extra_context={}):
     """
-    メールメッセージをテンプレートからレンダーする
-    subject,bodyを返す 
+    Renders an email message from a template and returns a two
+    tuple containing the subject and body of the message.
+
+    The contents of the EMAIL_DEFAULT_CONTENT setting are
+    passed to the template when it is rendered but can be
+    overridden.
     """
     from django.template.loader import render_to_string
     context = getattr(settings, "EMAIL_DEFAULT_CONTEXT", {})
@@ -208,7 +212,9 @@ def render_message(template_name, extra_context={}):
 def send_template_mail(template_name, recipient_list, extra_context={},
                        from_email=settings.SERVER_EMAIL, fail_silently=True, encoding=None):
     u"""
-    メールを送信する
+    Send an email using a django template. The template should be formatted
+    so that the first line of the template is the subject. All subsequent lines
+    are used as the body of the email message.
     """
     try:
         if not isinstance(recipient_list, list) and not isinstance(recipient_list, tuple):
