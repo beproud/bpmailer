@@ -153,7 +153,7 @@ class EmailMessage(django_mail.EmailMessage):
             msg[name] = value
         return msg
 
-def send_basic_mail(subject, body, recipient_list, from_email=settings.SERVER_EMAIL, fail_silently=True,
+def send_basic_mail(subject, body, recipient_list, from_email=settings.SERVER_EMAIL,
               fail_silently=False, auth_user=None, auth_password=None, encoding=None):
 
     try:
