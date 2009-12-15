@@ -24,11 +24,11 @@ https://project.beproud.jp/hg/bpmailer/
   :maxdepth: 1
 
   sending_mail
+  settings
 .. api
 .. templates
 .. supported_encodings
 .. logging
-.. settings
 
 Indices and tables
 ==================
