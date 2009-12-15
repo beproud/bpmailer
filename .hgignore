@@ -7,6 +7,7 @@ syntax: glob
 *.o
 *.pyc
 *.swp
+docs/ja/build
 
 syntax: regexp
 .*\#.*\#$ 
