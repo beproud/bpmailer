@@ -85,3 +85,27 @@ class MailTestCase(DjangoTestCase):
         self.assertEquals(str(message['Subject']), '=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=')
         self.assertEquals(str(message['To']), '=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>')
         self.assertEquals(str(message['From']), '=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>')
+
+    def test_template_mail(self):
+        settings.DEFAULT_CHARSET = 'utf-8'
+         
+        send_template_mail(
+            u'mailer/mail.tpl',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
+            extra_context={
+                'subject': u'件名',
+                'body': u'本文',
+            },
+            fail_silently=False,
+        )
+
+        self.assertEquals(len(django_mail.outbox), 1)
+        self.assertEquals(django_mail.outbox[0].body, u'本文\n')
+
+        message = django_mail.outbox[0].message()
+
+        message = django_mail.outbox[0].message()
+        self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
+        self.assertEquals(str(message['To']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
+        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
