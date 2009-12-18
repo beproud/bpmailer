@@ -154,8 +154,8 @@ def render_message(template_name, extra_context={}):
     rendered_mail = render_to_string(template_name, context).replace(u"\r\n",u"\n").replace(u"\r",u"\n").split(u"\n")
     return rendered_mail[0], "\n".join(rendered_mail[1:])
     
-def send_template_mail(template_name, recipient_list, extra_context={},
-                       from_email=settings.SERVER_EMAIL, fail_silently=True, encoding=None):
+def send_template_mail(template_name, from_email, recipient_list, extra_context={},
+                       fail_silently=True, auth_user=None, auth_password=None, encoding=None):
     u"""
     Send an email using a django template. The template should be formatted
     so that the first line of the template is the subject. All subsequent lines
@@ -165,13 +165,15 @@ def send_template_mail(template_name, recipient_list, extra_context={},
         if not isinstance(recipient_list, list) and not isinstance(recipient_list, tuple):
             recipient_list = [recipient_list]
         
-        subject,message = render_message(template_name, extra_context, fail_silently)
+        subject,message = render_message(template_name, extra_context)
         return send_basic_mail(
             subject=subject,
             message=message,
             recipient_list=recipient_list,
             from_email=from_email,
             fail_silently=fail_silently,
+            auth_user=auth_user,
+            auth_password=auth_password,
             encoding=encoding,
         )
     except Exception, e:
