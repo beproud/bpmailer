@@ -36,61 +36,6 @@ __all__ = (
     'BadHeaderError',
 )
 
-# Python charset => mail header charset mapping
-# TODO: Add more encodings
-CHARSET_MAP = getattr(settings, "EMAIL_HEADER_CHARSET_MAP", {
-    # UTF-8
-    "utf8": "UTF-8",
-    "utf_8": "UTF-8",
-    "U8": "UTF-8",
-    "UTF": "UTF-8",
-    "utf8": "UTF-8",
-
-    # Shift-JIS
-    "cp932": "SHIFT-JIS",
-    "932": "SHIFT-JIS",
-    "ms932": "SHIFT-JIS",
-    "mskanji": "SHIFT-JIS",
-    "ms-kanji": "SHIFT-JIS",
-
-    "shift_jis": "SHIFT-JIS",
-    "csshiftjis": "SHIFT-JIS",
-    "shiftjis": "SHIFT-JIS",
-    "sjis": "SHIFT-JIS",
-    "s_jis": "SHIFT-JIS",
-    
-    "shift_jis_2004": "SHIFT-JIS",
-    "shiftjis2004": "SHIFT-JIS",
-    "sjis_2004": "SHIFT-JIS",
-    "sjis2004": "SHIFT-JIS",
-    
-    "shift_jisx0213": "SHIFT-JIS",
-    "shiftjisx0213": "SHIFT-JIS",
-    "sjisx0213": "SHIFT-JIS",
-    "s_jisx0213": "SHIFT-JIS",
-
-    # ISO-2022-JP
-    "iso2022_jp": "ISO-2022-JP",
-    "scsiso2022jp": "ISO-2022-JP",
-    "iso2022jp": "ISO-2022-JP",
-    "iso-2022-jp": "ISO-2022-JP",
-    "iso-2022-jp": "ISO-2022-JP",
-    "iso-2022-jp-1": "ISO-2022-JP",
-    "iso2022_jp_2": "ISO-2022-JP",
-    "iso2022jp-2": "ISO-2022-JP",
-    "iso-2022-jp-2": "ISO-2022-JP",
-    "iso-2022-jp-2": "ISO-2022-JP",
-    "iso2022_jp_2004": "ISO-2022-JP",
-    "iso2022jp-2004": "ISO-2022-JP",
-    "iso-2022-jp-2004": "ISO-2022-JP",
-    "iso2022_jp_3": "ISO-2022-JP",
-    "iso2022jp-3": "ISO-2022-JP",
-    "iso-2022-jp-3": "ISO-2022-JP",
-    "iso2022_jp_ext": "ISO-2022-JP",
-    "iso2022jp-ext": "ISO-2022-JP",
-    "iso-2022-jp-ext": "ISO-2022-JP",
-})
-
 logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
 
 def format_header(name, val, encoding=None):
@@ -101,13 +46,13 @@ def format_header(name, val, encoding=None):
         result = []
         for item in val.split(', '):
             nm, addr = parseaddr(item)
-            nm = str(Header(nm.encode(encoding,'replace'), CHARSET_MAP.get(encoding, encoding)))
+            nm = str(Header(nm.encode(encoding,'replace'), encoding))
             result.append(formataddr((nm, str(addr))))
         val = ', '.join(result)
     elif name.lower() == 'subject':
-        val = Header(val.encode(encoding,'replace'), CHARSET_MAP.get(encoding, encoding))
+        val = Header(val.encode(encoding,'replace'), encoding)
     else:
-        val = Header(val, CHARSET_MAP.get(encoding, encoding))
+        val = Header(val, encoding)
     
     return name,val
 
@@ -127,7 +72,7 @@ class EmailMessage(django_mail.EmailMessage):
     def message(self):
         encoding = self.encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
         msg = SafeMIMEText(smart_str(self.body, encoding, 'replace'),
-                           self.content_subtype, CHARSET_MAP.get(encoding, encoding))
+                           self.content_subtype, encoding)
         if self.attachments:
             body_msg = msg
             msg = SafeMIMEMultipart(_subtype=self.multipart_subtype)
@@ -153,7 +98,7 @@ class EmailMessage(django_mail.EmailMessage):
             msg[name] = value
         return msg
 
-def send_basic_mail(subject, body, recipient_list, from_email=settings.SERVER_EMAIL,
+def send_basic_mail(subject, message, from_email, recipient_list,
               fail_silently=False, auth_user=None, auth_password=None, encoding=None):
 
     try:
@@ -167,9 +112,9 @@ def send_basic_mail(subject, body, recipient_list, from_email=settings.SERVER_EM
                                     fail_silently=False)
         msg = EmailMessage(
             subject=subject,
-            body=body,
+            body=message,
             from_email=from_email,
-            to=to_list,
+            to=recipient_list,
         )
         if encoding is not None:
             msg.encoding = encoding 
@@ -185,8 +130,8 @@ def send_mail(subject, message, from_email, recipient_list,
               fail_silently=False, auth_user=None, auth_password=None):
     send_basic_mail(
         subject=subject,
-        body=body,
-        to_list=recipient_list,
+        message=message,
+        recipient_list=recipient_list,
         from_email=from_email,
         fail_silently=fail_silently,
         auth_user=auth_user,
