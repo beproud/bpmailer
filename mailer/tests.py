@@ -9,11 +9,15 @@ class MailTestCase(DjangoTestCase):
     
     def setUp(self):
         self.charset = settings.DEFAULT_CHARSET
-        self.email_charset = getattr(settings, 'EMAIL_CHARSET', settings.DEFAULT_CHARSET)
+        self.email_charset = getattr(settings, 'EMAIL_CHARSET', None)
 
     def tearDown(self):
         settings.DEFAULT_CHARSET = self.charset
-        settings.EMAIL_CHARSET = self.email_charset
+        if self.email_charset is None:
+            if hasattr(settings, 'EMAIL_CHARSET'): 
+                del settings._wrapped.EMAIL_CHARSET
+        else:
+            settings.EMAIL_CHARSET = self.email_charset
 
     def test_send_mail(self):
         settings.DEFAULT_CHARSET = 'utf-8'
