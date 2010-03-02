@@ -11,3 +11,6 @@ docs/ja/build
 
 syntax: regexp
 .*\#.*\#$ 
+^bpmailer.egg-info/
+^build/
+^dist/
