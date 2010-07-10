@@ -16,7 +16,7 @@ def main():
     global_settings.INSTALLED_APPS = (
         'django.contrib.auth',
         'django.contrib.contenttypes',
-        'commons',
+        'mailer',
     )
     global_settings.DATABASE_ENGINE = "sqlite3"
     global_settings.DATABASE_NAME = ":memory:"
@@ -26,9 +26,9 @@ def main():
 
     if django.VERSION > (1,2):
         test_runner = test_runner()
-        failures = test_runner.run_tests(['commons'])
+        failures = test_runner.run_tests(['mailer'])
     else:
-        failures = test_runner(['commons'], verbosity=1)
+        failures = test_runner(['mailer'], verbosity=1)
     sys.exit(failures)
 
 if __name__ == '__main__':
