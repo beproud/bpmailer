@@ -23,16 +23,16 @@ class MailTestCase(DjangoTestCase):
         settings.DEFAULT_CHARSET = 'utf-8'
 
         send_mail(
-            u'Test Subject',
-            u'Test Body',
+            u'テスト件名',
+            u'テストボディ',
             'example-from@example.net',
             ['example@example.net'],
         )
         self.assertEquals(len(django_mail.outbox), 1)
-        self.assertEquals(django_mail.outbox[0].body, u'Test Body')
+        self.assertEquals(django_mail.outbox[0].body, u'テストボディ')
 
         message = django_mail.outbox[0].message() 
-        self.assertEquals(str(message['Subject']), '=?UTF-8?q?Test_Subject?=')
+        self.assertEquals(str(message['Subject']), '=?UTF-8?b?44OG44K544OI5Lu25ZCN?=')
         self.assertEquals(str(message['To']), 'example@example.net')
         self.assertEquals(str(message['From']), 'example-from@example.net')
 
