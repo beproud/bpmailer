@@ -48,7 +48,7 @@ class MailTestCase(object):
             old_setting_value = getattr(self, "_old_"+setting_name, None)
             if old_setting_value is None:
                 if hasattr(settings, setting_name):
-                    delattr(settings, setting_name)
+                    delattr(settings._wrapped, setting_name)
             else:
                 setattr(settings, setting_name, old_setting_value)
 
@@ -92,8 +92,6 @@ class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['From']), 'example-from@example.net')
     
     def test_email_charset(self):
-        settings.DEFAULT_CHARSET = 'utf-8'
-         
         send_basic_mail(
            u'件名',
            u'本文',
