@@ -6,18 +6,20 @@ from email.charset import (
     QP, BASE64, SHORTEST,
 )
 
+__all__ = ('init_mailer')
+
 # Python charset => mail header charset mapping
 # TODO: Add more encodings
 CHARSETS = getattr(settings, "EMAIL_CHARSETS", {
     'UTF-8': {
         'header_enc': SHORTEST,
         'body_enc': BASE64,
-        'output_charset': 'utf-8',
+        'output_charset': None,
     },
     'SHIFT-JIS': {
         'header_enc': BASE64,
         'body_enc': None,
-        'output_charset': 'iso-2022-jp',
+        'output_charset': None,
     },
     'ISO-2022-JP': {
         'header_enc': BASE64,
@@ -86,13 +88,17 @@ CODECS = getattr(settings, "EMAIL_CHARSET_CODECS", {
 })
 
 def init_mailer():
-    for canonical, charset_dict in CHARSETS.iteritems():
-        add_charset(canonical, **charset_dict)
+    if CHARSETS:
+        print "charsets"
+        for canonical, charset_dict in CHARSETS.iteritems():
+            add_charset(canonical, **charset_dict)
 
-    for alias, canonical in ALIASES.iteritems():
-        add_alias(alias, canonical)
+    if ALIASES:
+        for alias, canonical in ALIASES.iteritems():
+            add_alias(alias, canonical)
 
-    for canonical, codec_name in CODECS.iteritems():
-        add_codec(canonical, codec_name)
+    if CODECS:
+        for canonical, codec_name in CODECS.iteritems():
+            add_codec(canonical, codec_name)
 
 init_mailer()
