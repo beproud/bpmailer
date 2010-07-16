@@ -19,6 +19,13 @@ class MailTestCase(object):
                 (msg or '%r != %r' % (first, second))
     
     def setUp(self):
+        from mailer.models import init_mailer
+        from email import charset
+
+        self._old_email_CHARSETS = charset.CHARSETS
+        self._old_email_ALIASES = charset.ALIASES
+        self._old_email_CODEC_MAP = charset.ALIASES
+
         self._old_DEFAULT_CHARSET = settings.DEFAULT_CHARSET
         settings.DEFAULT_CHARSET = self.DEFAULT_CHARSET
 
@@ -27,8 +34,15 @@ class MailTestCase(object):
             if setting_value:
                 setattr(self, "_old_"+setting_name, getattr(settings, setting_name, None))
                 setattr(settings, setting_name, setting_value)
+        init_mailer()
 
     def tearDown(self):
+        from email import charset
+
+        charset.CHARSETS = self._old_email_CHARSETS
+        charset.ALIASES = self._old_email_ALIASES
+        charset.ALIASES = self._old_email_CODEC_MAP
+
         settings.DEFAULT_CHARSET = self._old_DEFAULT_CHARSET
         for setting_name in ["EMAIL_CHARSET", "EMAIL_CHARSETS", "EMAIL_CHARSET_ALIASES", "EMAIL_CHARSET_CODECS"]:
             old_setting_value = getattr(self, "_old_"+setting_name, None)
