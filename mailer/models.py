@@ -89,7 +89,6 @@ CODECS = getattr(settings, "EMAIL_CHARSET_CODECS", {
 
 def init_mailer():
     if CHARSETS:
-        print "charsets"
         for canonical, charset_dict in CHARSETS.iteritems():
             add_charset(canonical, **charset_dict)
 
