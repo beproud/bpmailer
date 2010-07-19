@@ -1,4 +1,4 @@
-# vim:fileencoding=utf8
+#:coding=utf-8:
 
 import re
 from datetime import datetime,date,timedelta
@@ -28,7 +28,6 @@ __all__ = (
     'forbid_multi_line_headers',
     'make_msgid',
     'send_mail',
-    'send_basic_mail',
     'send_template_mail',
     'send_mass_mail',
     'mail_managers',
@@ -178,7 +177,7 @@ class EmailMultiAlternatives(EmailMessage):
                 msg.attach(self._create_mime_attachment(*alternative))
         return msg
 
-def send_basic_mail(subject, message, from_email, recipient_list,
+def send_mail(subject, message, from_email, recipient_list,
               fail_silently=False, auth_user=None, auth_password=None, encoding=None):
 
     try:
@@ -202,18 +201,6 @@ def send_basic_mail(subject, message, from_email, recipient_list,
         log_exception("Mail Error")
         if not fail_silently:
             raise
-
-def send_mail(subject, message, from_email, recipient_list,
-              fail_silently=False, auth_user=None, auth_password=None):
-    send_basic_mail(
-        subject=subject,
-        message=message,
-        recipient_list=recipient_list,
-        from_email=from_email,
-        fail_silently=fail_silently,
-        auth_user=auth_user,
-        auth_password=auth_password,
-    )
 
 def render_message(template_name, extra_context={}):
     """
@@ -243,7 +230,7 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
             recipient_list = [recipient_list]
         
         subject,message = render_message(template_name, extra_context)
-        return send_basic_mail(
+        return send_mail(
             subject=subject,
             message=message,
             recipient_list=recipient_list,
@@ -259,7 +246,7 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
             raise
 
 def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
-                   auth_password=None):
+                   auth_password=None, encoding=None):
     """
     Given a datatuple of (subject, message, from_email, recipient_list), sends
     each message to each recipient list. Returns the number of e-mails sent.
@@ -278,7 +265,7 @@ def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
                 for subject, message, sender, recipient in datatuple]
     return connection.send_messages(messages)
 
-def mail_managers(subject, message, fail_silently=False):
+def mail_managers(subject, message, fail_silently=False, encoding=None):
     if not settings.MANAGERS:
         return
     send_mail(
@@ -287,6 +274,7 @@ def mail_managers(subject, message, fail_silently=False):
         from_email=settings.SERVER_EMAIL,
         recipient_list=[a[1] for a in settings.MANAGERS],
         fail_silently=fail_silently,
+        encoding=encoding,
     )
 
 def mail_managers_template(template_name, extra_context={}, fail_silently=True, encoding=None):
@@ -301,7 +289,7 @@ def mail_managers_template(template_name, extra_context={}, fail_silently=True, 
         encoding=encoding,
     )
 
-def mail_admins(subject, message, fail_silently=False):
+def mail_admins(subject, message, fail_silently=False, encoding=None):
     if not settings.ADMINS:
         return
     send_mail(
@@ -310,6 +298,7 @@ def mail_admins(subject, message, fail_silently=False):
         from_email=settings.SERVER_EMAIL,
         recipient_list=[a[1] for a in settings.ADMINS],
         fail_silently=fail_silently,
+        encoding=encoding,
     )
 
 def log_message(msg, sent):

@@ -5,12 +5,20 @@ from django.conf import settings
 
 from mailer import *
 
+AVAILABLE_SETTINGS = [
+    "EMAIL_CHARSET", "EMAIL_CHARSETS",
+    "EMAIL_CHARSET_ALIASES", "EMAIL_CHARSET_CODECS",
+    "EMAIL_ALL_FORWARD",
+]
+
 class MailTestCase(object):
     DEFAULT_CHARSET = None
+    DEBUG = None
     EMAIL_CHARSET = None
     EMAIL_CHARSETS = None
     EMAIL_CHARSET_ALIASES = None
     EMAIL_CHARSET_CODECS = None
+    EMAIL_ALL_FORWARD = None
 
     def assertEllipsisMatch(self, first, second, msg=None):
         from doctest import _ellipsis_match
@@ -26,10 +34,14 @@ class MailTestCase(object):
         self._old_email_ALIASES = charset.ALIASES
         self._old_email_CODEC_MAP = charset.ALIASES
 
-        self._old_DEFAULT_CHARSET = settings.DEFAULT_CHARSET
-        settings.DEFAULT_CHARSET = self.DEFAULT_CHARSET
+        if self.DEFAULT_CHARSET is not None:
+            self._old_DEFAULT_CHARSET = settings.DEFAULT_CHARSET
+            settings.DEFAULT_CHARSET = self.DEFAULT_CHARSET
+        if self.DEBUG is not None:
+            self._old_DEBUG = settings.DEBUG
+            settings.DEBUG = self.DEBUG
 
-        for setting_name in ["EMAIL_CHARSET", "EMAIL_CHARSETS", "EMAIL_CHARSET_ALIASES", "EMAIL_CHARSET_CODECS"]:
+        for setting_name in AVAILABLE_SETTINGS:
             setting_value = getattr(self, setting_name, None)
             if setting_value:
                 setattr(self, "_old_"+setting_name, getattr(settings, setting_name, None))
@@ -43,8 +55,12 @@ class MailTestCase(object):
         charset.ALIASES = self._old_email_ALIASES
         charset.ALIASES = self._old_email_CODEC_MAP
 
-        settings.DEFAULT_CHARSET = self._old_DEFAULT_CHARSET
-        for setting_name in ["EMAIL_CHARSET", "EMAIL_CHARSETS", "EMAIL_CHARSET_ALIASES", "EMAIL_CHARSET_CODECS"]:
+        if self.DEFAULT_CHARSET is not None:
+            settings.DEFAULT_CHARSET = self._old_DEFAULT_CHARSET
+        if self.DEBUG is not None:
+            settings.DEBUG = self._old_DEBUG
+
+        for setting_name in AVAILABLE_SETTINGS:
             old_setting_value = getattr(self, "_old_"+setting_name, None)
             if old_setting_value is None:
                 if hasattr(settings, setting_name):
@@ -75,8 +91,8 @@ class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
     EMAIL_CHARSET = 'iso-2022-jp'
     # TODO: Set ALIASES and CODECS
 
-    def test_send_basic_mail_encoding(self):
-        send_basic_mail(
+    def test_send_mail_encoding(self):
+        send_mail(
            u'件名',
            u'本文',
            'example-from@example.net',
@@ -92,7 +108,7 @@ class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['From']), 'example-from@example.net')
     
     def test_email_charset(self):
-        send_basic_mail(
+        send_mail(
            u'件名',
            u'本文',
            u'差出人 <example-from@example.net>',
@@ -108,7 +124,7 @@ class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['From']), '=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>')
 
     def test_email_charset_strict(self):
-        send_basic_mail(
+        send_mail(
            u'件名',
            u'本文',
            u'差出人 <example-from@example.net>',
