@@ -10,11 +10,11 @@ Djangoの標準メールAPIを使えば、簡単に電子メールを送信で�
 
 Django標準APIを使うと下記の問題があります:
 
-1. Djangoは内部的に ``DEFAULT_ENCODING`` を使ってしまって、 Djangoの ``DEFAULT_ENCODING`` 以外のエンコーディングを、 ``send_mail`` や、 ``mail_managers`` に指定することができません。
-2. Django1.2 で改善されていたんですが、 Django 1.1 では、 ``EmailMessage`` クラスの ``encoding`` プロパティを使って、その指定したエンコーディングで送信することができますが、メールのヘッダーはどうしても、 ``DEFAULT_ENCODING`` でエンコードされます。
-3. ``DEFAULT_ENCODING`` を変えても、pythonの内部エンコーディング文字列 (cp932、iso-2022-jp-2等) を使って、そのままにヘッダーに入れてしまって、メールクライアントがそのエンコーディングを認識することを失敗して、メールの内応が化けてしまうことが多い。
+1. Djangoは内部的に `DEFAULT_CHARSET`_ を使ってしまって、 Djangoの `DEFAULT_CHARSET`_ 以外のエンコーディングを、 ``send_mail`` や、 ``mail_managers`` に指定することができません。
+2. Django1.2 で改善されていたんですが、 Django 1.1 では、 `EmailMessage`_ クラスの ``encoding`` プロパティを使って、その指定したエンコーディングで送信することができますが、メールのヘッダーはどうしても、 `DEFAULT_CHARSET`_ でエンコードされます。
+3. `DEFAULT_CHARSET`_ を変えても、pythonの内部エンコーディング文字列 (cp932、iso-2022-jp-2等) を使って、そのままにヘッダーに入れてしまって、メールクライアントがそのエンコーディングを認識することを失敗して、メールの内応が化けてしまうことが多い。
 
-bpmailerは世界的に使っているエンコード文字列をヘッダーに入れてちゃんとクライアントが読めるように、文字コードを守っているアプリです。 ``DEFAULT_ENCODING`` 以外のエンコーディングを設定することもできます。
+bpmailerは世界的に使っているエンコード文字列をヘッダーに入れてちゃんとクライアントが読めるように、文字コードを守っているアプリです。 `DEFAULT_CHARSET`_ 以外のエンコーディングを設定することもできます。
 
 ソースリポジトリ
 --------------------------
@@ -40,3 +40,6 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+.. _`DEFAULT_CHARSET`: http://djangoproject.jp/doc/ja/1.0/ref/settings.html#default-charset
+.. _`EmailMessage`: http://djangoproject.jp/doc/ja/1.0/topics/email.html#emailmessage-smtpconnection
