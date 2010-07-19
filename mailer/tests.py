@@ -145,6 +145,44 @@ class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
             '''\x1b$BK\\J8\x1b(B''',
             message.as_string())
 
+class EmailAllForwardTestCase(MailTestCase, DjangoTestCase):
+    DEBUG = True
+    EMAIL_ALL_FORWARD="all-forward@example.net"
+
+    def test_email_all_forward(self):
+        send_mail(
+           u'件名',
+           u'本文',
+           'example-from@example.net',
+           ['example@example.net'],
+       )
+        self.assertEquals(len(django_mail.outbox), 1)
+        self.assertEquals(django_mail.outbox[0].body, u'本文')
+
+        message = django_mail.outbox[0].message() 
+        self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
+        self.assertEquals(str(message['To']), 'all-forward@example.net')
+        self.assertEquals(str(message['From']), 'all-forward@example.net')
+
+class EmailAllForwardTestCase2(MailTestCase, DjangoTestCase):
+    DEBUG = False
+    EMAIL_ALL_FORWARD="all-forward@example.net"
+
+    def test_email_all_forward(self):
+        send_mail(
+           u'件名',
+           u'本文',
+           'example-from@example.net',
+           ['example@example.net'],
+       )
+        self.assertEquals(len(django_mail.outbox), 1)
+        self.assertEquals(django_mail.outbox[0].body, u'本文')
+
+        message = django_mail.outbox[0].message() 
+        self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
+        self.assertEquals(str(message['To']), 'example@example.net')
+        self.assertEquals(str(message['From']), 'example-from@example.net')
+
 class TemplateTestCase(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf-8'
     # TODO: Set ALIASES and CODECS
