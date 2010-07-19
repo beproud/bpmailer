@@ -203,8 +203,29 @@ class TemplateTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(django_mail.outbox[0].body, u'本文\n')
 
         message = django_mail.outbox[0].message()
-
-        message = django_mail.outbox[0].message()
         self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
+        self.assertEquals(str(message['To']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
+        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+
+    def test_multi_line_subject(self):
+        send_template_mail(
+            u'mailer/mail.tpl',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
+            extra_context={
+                'subject': u'これは\r改行\nの\nある\r\n件名',
+                'body': u'本文',
+            },
+            fail_silently=False,
+        )
+
+        self.assertEquals(len(django_mail.outbox), 1)
+
+        mail_message = django_mail.outbox[0]
+        self.assertEquals(mail_message.subject, u'これは改行のある件名')
+        self.assertEquals(mail_message.body, u'本文\n')
+
+        message = mail_message.message()
+        self.assertEquals(str(message['Subject']), '=?UTF-8?b?44GT44KM44Gv5pS56KGM44Gu44GC44KL5Lu25ZCN?=')
         self.assertEquals(str(message['To']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
         self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
