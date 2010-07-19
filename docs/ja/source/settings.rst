@@ -15,6 +15,8 @@ EMAIL_LOGGER
 電子メールに関するロガーの名前。python の標準 logging モジュールを使って、設定のロガーの名前として、ロガーを作成します。
 デフォールトは python の logging モジュールのロートロガーです。
 
+.. _setting-email-charset:
+
 EMAIL_CHARSET
 ----------------------------
 
