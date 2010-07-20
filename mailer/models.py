@@ -1,11 +1,34 @@
 # vim:fileencoding=utf-8
 
 from django.conf import settings
-from email.charset import ALIASES
+from email.charset import (
+    add_alias, add_charset, add_codec,
+    QP, BASE64, SHORTEST,
+)
+
+__all__ = ('init_mailer')
 
 # Python charset => mail header charset mapping
 # TODO: Add more encodings
-ALIASES.update(getattr(settings, "EMAIL_CHARSET_ALIASES", {
+CHARSETS = getattr(settings, "EMAIL_CHARSETS", {
+    'UTF-8': {
+        'header_enc': SHORTEST,
+        'body_enc': BASE64,
+        'output_charset': None,
+    },
+    'SHIFT-JIS': {
+        'header_enc': BASE64,
+        'body_enc': None,
+        'output_charset': None,
+    },
+    'ISO-2022-JP': {
+        'header_enc': BASE64,
+        'body_enc': None,
+        'output_charset': None,
+    },
+})
+
+ALIASES = getattr(settings, "EMAIL_CHARSET_ALIASES", {
     # UTF-8
     "utf8": "UTF-8",
     "utf_8": "UTF-8",
@@ -57,5 +80,24 @@ ALIASES.update(getattr(settings, "EMAIL_CHARSET_ALIASES", {
     "iso2022_jp_ext": "ISO-2022-JP",
     "iso2022jp-ext": "ISO-2022-JP",
     "iso-2022-jp-ext": "ISO-2022-JP",
-}))
+})
+CODECS = getattr(settings, "EMAIL_CHARSET_CODECS", {
+    'ISO-2022-JP': 'iso-2022-jp-2',
+    'UTF-8': 'utf-8',
+    'SHIFT-JIS': 'cp932',
+})
 
+def init_mailer():
+    if CHARSETS:
+        for canonical, charset_dict in CHARSETS.iteritems():
+            add_charset(canonical, **charset_dict)
+
+    if ALIASES:
+        for alias, canonical in ALIASES.iteritems():
+            add_alias(alias, canonical)
+
+    if CODECS:
+        for canonical, codec_name in CODECS.iteritems():
+            add_codec(canonical, codec_name)
+
+init_mailer()

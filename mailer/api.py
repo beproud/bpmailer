@@ -1,28 +1,33 @@
-# vim:fileencoding=utf8
+#:coding=utf-8:
 
 import re
 from datetime import datetime,date,timedelta
 from email.MIMEText import MIMEText
 from email.MIMEMultipart import MIMEMultipart
 from email.Header import Header
-from email.Utils import formatdate, parseaddr, formataddr
+from email.Utils import formatdate, getaddresses, formataddr
 
+from django import VERSION as DJANGO_VERSION
 from django.core import mail as django_mail
 from django.utils.encoding import smart_str
 from django import template
 from django.template.loader import render_to_string
 from django.conf import settings
 
-from django.core.mail import SMTPConnection, BadHeaderError
+from django.core.mail import (
+    EmailMessage, SMTPConnection,
+    BadHeaderError, make_msgid,
+)
 
 import logging
 
-__version__ = '0.0.1'
+__version__ = '0.2'
 
-# TODO: Support EmailMultiAlternatives
 __all__ = (
+    'get_connection',
+    'forbid_multi_line_headers',
+    'make_msgid',
     'send_mail',
-    'send_basic_mail',
     'send_template_mail',
     'send_mass_mail',
     'mail_managers',
@@ -30,6 +35,7 @@ __all__ = (
     'mail_admins',
     'render_message',
     'EmailMessage',
+    'EmailMultiAlternatives',
     'SafeMIMEText',
     'SafeMIMEMultipart',
     'SMTPConnection',
@@ -38,77 +44,148 @@ __all__ = (
 
 logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
 
-def format_header(name, val, encoding=None):
-    encoding = encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
-    if '\n' in val or '\r' in val:
-        raise django_mail.BadHeaderError("Header values can't contain newlines (got %r for header %r)" % (val, name)) 
-    if name.lower() in ('to', 'from', 'cc'):
-        result = []
-        for item in val.split(', '):
-            nm, addr = parseaddr(item)
-            nm = str(Header(nm.encode(encoding,'replace'), encoding))
-            result.append(formataddr((nm, str(addr))))
-        val = ', '.join(result)
-    elif name.lower() == 'subject':
-        val = Header(val.encode(encoding,'replace'), encoding)
-    else:
-        val = Header(val, encoding)
-    
-    return name,val
+if DJANGO_VERSION > (1,2):
+    from django.core.mail import (
+        SafeMIMEText, SafeMIMEMultipart,
+        get_connection, forbid_multi_line_headers,
+    )
+else:
+    from django.utils.encoding import force_unicode
 
-class SafeMIMEText(MIMEText):
-    def __setitem__(self, name, val):
-        if name.lower() in ('subject', 'to', 'from', 'cc'):
-            name,val = format_header(name, val, smart_str(self._charset))
-        MIMEText.__setitem__(self, name, val)
+    def get_connection(backend=None, fail_silently=False, **kwds):
+        return SMTPConnection(fail_silently=fail_silently, **kwds)
+ 
+    def forbid_multi_line_headers(name, val, encoding):
+        """Forbids multi-line headers, to prevent header injection."""
+        encoding = encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
+        val = force_unicode(val)
+        if '\n' in val or '\r' in val:
+            raise BadHeaderError("Header values can't contain newlines (got %r for header %r)" % (val, name))
+        try:
+            val = val.encode('ascii')
+        except UnicodeEncodeError:
+            if name.lower() in ('to', 'from', 'cc'):
+                result = []
+                for nm, addr in getaddresses((val,)):
+                    nm = str(Header(nm.encode(encoding), encoding))
+                    result.append(formataddr((nm, str(addr))))
+                val = ', '.join(result)
+            else:
+                val = Header(val.encode(encoding), encoding)
+        else:
+            if name.lower() == 'subject':
+                val = Header(val)
+        return name, val
 
-class SafeMIMEMultipart(MIMEMultipart):
-    def __setitem__(self, name, val):
-        if name.lower() in ('subject', 'to', 'from', 'cc'):
-            name,val = format_header(name, val, smart_str(self._charset))
-        MIMEText.__setitem__(self, name, val)
+    class SafeMIMEText(MIMEText):
+        
+        def __init__(self, text, subtype, charset):
+            self.encoding = charset
+            MIMEText.__init__(self, text, subtype, charset)
+        
+        def __setitem__(self, name, val):    
+            name, val = forbid_multi_line_headers(name, val, self.encoding)
+            MIMEText.__setitem__(self, name, val)
+
+    class SafeMIMEMultipart(MIMEMultipart):
+        
+        def __init__(self, _subtype='mixed', boundary=None, _subparts=None, encoding=None, **_params):
+            self.encoding = encoding
+            MIMEMultipart.__init__(self, _subtype, boundary, _subparts, **_params)
+            
+        def __setitem__(self, name, val):
+            name, val = forbid_multi_line_headers(name, val, self.encoding)
+            MIMEMultipart.__setitem__(self, name, val)
+
 
 class EmailMessage(django_mail.EmailMessage):
     def message(self):
         encoding = self.encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
-        msg = SafeMIMEText(smart_str(self.body, encoding, 'replace'),
+        msg = SafeMIMEText(smart_str(self.body, encoding),
                            self.content_subtype, encoding)
-        if self.attachments:
-            body_msg = msg
-            msg = SafeMIMEMultipart(_subtype=self.multipart_subtype)
-            if self.body:
-                msg.attach(body_msg)
-            for attachment in self.attachments:
-                if isinstance(attachment, MIMEBase):
-                    msg.attach(attachment)
-                else:
-                    msg.attach(self._create_attachment(*attachment))
-        msg['Subject'] = self.subject 
-        msg['From'] = self.extra_headers.pop('From', self.from_email)
+        msg = self._create_message(msg)
+        msg['Subject'] = self.subject
+        msg['From'] = self.extra_headers.get('From', self.from_email)
         msg['To'] = ', '.join(self.to)
 
         # Email header names are case-insensitive (RFC 2045), so we have to
         # accommodate that when doing comparisons.
         header_names = [key.lower() for key in self.extra_headers]
         if 'date' not in header_names:
-            msg['Date'] = formatdate(localtime=True)
+            msg['Date'] = formatdate()
         if 'message-id' not in header_names:
-            msg['Message-ID'] = django_mail.make_msgid()
+            msg['Message-ID'] = make_msgid()
         for name, value in self.extra_headers.items():
+            if name.lower() == 'from':  # From is already handled
+                continue
             msg[name] = value
         return msg
 
-def send_basic_mail(subject, message, from_email, recipient_list,
+    def _create_mime_attachment(self, content, mimetype):
+        """
+        Converts the content, mimetype pair into a MIME attachment object.
+        """
+        basetype, subtype = mimetype.split('/', 1)
+        if basetype == 'text':
+            encoding = self.encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
+            attachment = SafeMIMEText(smart_str(content, encoding), subtype, encoding)
+        else:
+            # Encode non-text attachments with base64.
+            attachment = MIMEBase(basetype, subtype)
+            attachment.set_payload(content)
+            Encoders.encode_base64(attachment)
+        return attachment
+
+class EmailMultiAlternatives(EmailMessage):
+    """
+    A version of EmailMessage that makes it easy to send multipart/alternative
+    messages. For example, including text and HTML versions of the text is
+    made easier.
+    """
+    alternative_subtype = 'alternative'
+
+    def __init__(self, subject='', body='', from_email=None, to=None, bcc=None,
+            connection=None, attachments=None, headers=None, alternatives=None):
+        """
+        Initialize a single email message (which can be sent to multiple
+        recipients).
+
+        All strings used to create the message can be unicode strings (or UTF-8
+        bytestrings). The SafeMIMEText class will handle any necessary encoding
+        conversions.
+        """
+        super(EmailMultiAlternatives, self).__init__(subject, body, from_email, to, bcc, connection, attachments, headers)
+        self.alternatives=alternatives or []
+
+    def attach_alternative(self, content, mimetype):
+        """Attach an alternative content representation."""
+        assert content is not None
+        assert mimetype is not None
+        self.alternatives.append((content, mimetype))
+
+    def _create_message(self, msg):
+        return self._create_attachments(self._create_alternatives(msg))
+
+    def _create_alternatives(self, msg):
+        encoding = self.encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
+        if self.alternatives:
+            body_msg = msg
+            msg = SafeMIMEMultipart(_subtype=self.alternative_subtype, encoding=encoding)
+            if self.body:
+                msg.attach(body_msg)
+            for alternative in self.alternatives:
+                msg.attach(self._create_mime_attachment(*alternative))
+        return msg
+
+def send_mail(subject, message, from_email, recipient_list,
               fail_silently=False, auth_user=None, auth_password=None, encoding=None):
 
     try:
-        from django.core.mail import SMTPConnection
-
         if settings.DEBUG and hasattr(settings, "EMAIL_ALL_FORWARD"):
             recipient_list = [settings.EMAIL_ALL_FORWARD]
             from_email = settings.EMAIL_ALL_FORWARD
 
-        connection = SMTPConnection(username=auth_user, password=auth_password,
+        connection = get_connection(username=auth_user, password=auth_password,
                                     fail_silently=False)
         msg = EmailMessage(
             subject=subject,
@@ -116,8 +193,7 @@ def send_basic_mail(subject, message, from_email, recipient_list,
             from_email=from_email,
             to=recipient_list,
         )
-        if encoding is not None:
-            msg.encoding = encoding 
+        msg.encoding = encoding
         return_val = msg.send()
         log_message(msg, return_val) 
         return return_val
@@ -125,18 +201,6 @@ def send_basic_mail(subject, message, from_email, recipient_list,
         log_exception("Mail Error")
         if not fail_silently:
             raise
-
-def send_mail(subject, message, from_email, recipient_list,
-              fail_silently=False, auth_user=None, auth_password=None):
-    send_basic_mail(
-        subject=subject,
-        message=message,
-        recipient_list=recipient_list,
-        from_email=from_email,
-        fail_silently=fail_silently,
-        auth_user=auth_user,
-        auth_password=auth_password,
-    )
 
 def render_message(template_name, extra_context={}):
     """
@@ -166,7 +230,7 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
             recipient_list = [recipient_list]
         
         subject,message = render_message(template_name, extra_context)
-        return send_basic_mail(
+        return send_mail(
             subject=subject,
             message=message,
             recipient_list=recipient_list,
@@ -182,7 +246,7 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
             raise
 
 def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
-                   auth_password=None):
+                   auth_password=None, encoding=None):
     """
     Given a datatuple of (subject, message, from_email, recipient_list), sends
     each message to each recipient list. Returns the number of e-mails sent.
@@ -195,13 +259,13 @@ def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
     Note: The API for this method is frozen. New code wanting to extend the
     functionality should use the EmailMessage class directly.
     """
-    connection = SMTPConnection(username=auth_user, password=auth_password,
+    connection = get_connection(username=auth_user, password=auth_password,
                                 fail_silently=fail_silently)
     messages = [EmailMessage(subject, message, sender, recipient)
                 for subject, message, sender, recipient in datatuple]
     return connection.send_messages(messages)
 
-def mail_managers(subject, message, fail_silently=False):
+def mail_managers(subject, message, fail_silently=False, encoding=None):
     if not settings.MANAGERS:
         return
     send_mail(
@@ -210,6 +274,7 @@ def mail_managers(subject, message, fail_silently=False):
         from_email=settings.SERVER_EMAIL,
         recipient_list=[a[1] for a in settings.MANAGERS],
         fail_silently=fail_silently,
+        encoding=encoding,
     )
 
 def mail_managers_template(template_name, extra_context={}, fail_silently=True, encoding=None):
@@ -224,7 +289,7 @@ def mail_managers_template(template_name, extra_context={}, fail_silently=True, 
         encoding=encoding,
     )
 
-def mail_admins(subject, message, fail_silently=False):
+def mail_admins(subject, message, fail_silently=False, encoding=None):
     if not settings.ADMINS:
         return
     send_mail(
@@ -233,6 +298,7 @@ def mail_admins(subject, message, fail_silently=False):
         from_email=settings.SERVER_EMAIL,
         recipient_list=[a[1] for a in settings.ADMINS],
         fail_silently=fail_silently,
+        encoding=encoding,
     )
 
 def log_message(msg, sent):

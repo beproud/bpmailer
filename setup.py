@@ -21,4 +21,9 @@ setup (
     ],
     packages=["mailer"],
     test_suite='tests.main',
+    entry_points={
+        "console_scripts":[
+            "test=tests:main",
+        ],
+    },
 )
