@@ -86,6 +86,28 @@ class EncodingTestCaseUTF8(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['To']), 'example@example.net')
         self.assertEquals(str(message['From']), 'example-from@example.net')
 
+    def test_email_charset_strict(self):
+        send_mail(
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example@example.net>'],
+        )
+        
+        message = django_mail.outbox[0].message()
+        self.assertEllipsisMatch(
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="UTF-8"\n'''
+            '''Content-Transfer-Encoding: base64\n'''
+            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
+            '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
+            '''To: =?UTF-8?b?5a6b5YWI?= <example@example.net>\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''5pys5paH\n''',
+            message.as_string())
+
 class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf-8'
     EMAIL_CHARSET = 'iso-2022-jp'
@@ -229,3 +251,54 @@ class TemplateTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['Subject']), '=?UTF-8?b?44GT44KM44Gv5pS56KGM44Gu44GC44KL5Lu25ZCN?=')
         self.assertEquals(str(message['To']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
         self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+
+class DjangoMailISO2022JPTestCase(MailTestCase, DjangoTestCase):
+    DEFAULT_CHARSET = 'iso-2022-jp'
+
+    def test_send_mail(self):
+        django_mail.send_mail(
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example@example.net>'],
+        )
+        
+        message = django_mail.outbox[0].message()
+        self.assertEllipsisMatch(
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
+            '''Content-Transfer-Encoding: 7bit\n'''
+            '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
+            '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
+            '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''\x1b$BK\\J8\x1b(B''',
+            message.as_string())
+
+class DjangoMailUTF8TestCase(MailTestCase, DjangoTestCase):
+    DEFAULT_CHARSET = 'utf8'
+
+    def test_send_mail(self):
+        django_mail.send_mail(
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example@example.net>'],
+        )
+        
+        message = django_mail.outbox[0].message()
+        msg_str = message.as_string()
+        self.assertEllipsisMatch(
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="UTF-8"\n'''
+            '''Content-Transfer-Encoding: base64\n'''
+            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
+            '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
+            '''To: =?UTF-8?b?5a6b5YWI?= <example@example.net>\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''5pys5paH\n''',
+            message.as_string())
