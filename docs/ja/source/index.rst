@@ -29,10 +29,10 @@ https://project.beproud.jp/hg/bpmailer/
 
   sending_mail
   settings
+  logging
 .. api
 .. templates
 .. supported_encodings
-.. logging
 
 Indices and tables
 ==================
