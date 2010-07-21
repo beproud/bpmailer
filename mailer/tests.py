@@ -50,6 +50,9 @@ class MailTestCase(object):
 
     def tearDown(self):
         from email import charset
+        from mailer.signals import mail_pre_send, mail_post_send
+        mail_pre_send.recievers = []
+        mail_post_send.recievers = []
 
         charset.CHARSETS = self._old_email_CHARSETS
         charset.ALIASES = self._old_email_ALIASES
@@ -302,3 +305,58 @@ class DjangoMailUTF8TestCase(MailTestCase, DjangoTestCase):
             '''\n'''
             '''5pys5paH\n''',
             message.as_string())
+
+class SignalTest(MailTestCase, DjangoTestCase):
+    DEFAULT_CHARSET = 'utf8'
+    EMAIL_CHARSET = 'iso-2022-jp'
+
+    def test_pre_send_singnal(self):
+        from mailer.signals import mail_pre_send
+        def pre_send_signal(sender, message, **kwargs):
+            message.from_email = message.from_email.replace(u'\uff5e', u'\u301c')
+            message.to = map(lambda x: x.replace(u'\uff5e', u'\u301c'), message.to)
+            message.bcc = map(lambda x: x.replace(u'\uff5e', u'\u301c'), message.bcc)
+            message.subject = message.subject.replace(u'\uff5e', u'\u301c')
+            message.body = message.body.replace(u'\uff5e', u'\u301c')
+        mail_pre_send.connect(pre_send_signal)
+
+        send_mail(
+           u'件名',
+           u'本文～テスト',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example@example.net>'],
+        )
+
+        message = django_mail.outbox[0].message()
+        self.assertEllipsisMatch(
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
+            '''Content-Transfer-Encoding: 7bit\n'''
+            '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
+            '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
+            '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''\x1b$BK\\J8!A%F%9%H\x1b(B''',
+            message.as_string())
+
+    def test_post_send_singnal(self):
+        from mailer.signals import mail_post_send
+        
+        test_list = []
+
+        def post_send_signal(sender, message, **kwargs):
+            self.assertEqual(message.subject, u'件名')
+            self.assertEqual(message.body, u'本文')
+            test_list.append("arrived")
+        mail_post_send.connect(post_send_signal)
+
+        send_mail(
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example@example.net>'],
+        )
+
+        self.assertTrue(test_list, ["arrived"])

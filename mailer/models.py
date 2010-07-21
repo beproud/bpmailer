@@ -1,7 +1,6 @@
 # vim:fileencoding=utf-8
 
 from django.conf import settings
-import django.dispatch
 
 from email import charset
 from email.charset import (

@@ -21,6 +21,8 @@ from django.core.mail import (
 
 import logging
 
+from signals import mail_pre_send, mail_post_send
+
 __version__ = '0.2'
 
 __all__ = (
@@ -194,7 +196,9 @@ def send_mail(subject, message, from_email, recipient_list,
             to=recipient_list,
         )
         msg.encoding = encoding
+        mail_pre_send.send(sender=msg, message=msg)
         return_val = msg.send()
+        mail_post_send.send(sender=msg, message=msg)
         log_message(msg, return_val) 
         return return_val
     except Exception, e:
