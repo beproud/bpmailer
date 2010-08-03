@@ -254,6 +254,10 @@ def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
     """
     Given a datatuple of (subject, message, from_email, recipient_list), sends
     each message to each recipient list. Returns the number of e-mails sent.
+    Also supports an optional encoding parameter to the datatuple. Individual
+    items in the datatuple may have a fifth item which specifies the encoding
+    of the particular email. Encodings in the datatuple have priority over
+    the encoding passed to send_mass_mail.
 
     If from_email is None, the DEFAULT_FROM_EMAIL setting is used.
     If auth_user and auth_password are set, they're used to log in.
@@ -265,9 +269,18 @@ def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
     """
     connection = get_connection(username=auth_user, password=auth_password,
                                 fail_silently=fail_silently)
-    messages = [EmailMessage(subject, message, sender, recipient)
-                for subject, message, sender, recipient in datatuple]
-    return connection.send_messages(messages)
+    def _message(args):
+        if len(args) > 4:
+            subject, message, sender, recipient, charset = args
+        else:
+            subject, message, sender, recipient = args
+            charset = encoding or None
+        message = EmailMessage(subject, message, sender, recipient)
+        if charset:
+            message.encoding = charset
+        return message
+    
+    return connection.send_messages(map(_message, datatuple))
 
 def mail_managers(subject, message, fail_silently=False, encoding=None):
     if not settings.MANAGERS:

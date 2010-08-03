@@ -360,3 +360,184 @@ class SignalTest(MailTestCase, DjangoTestCase):
         )
 
         self.assertTrue(test_list, ["arrived"])
+
+class MassMailTest(MailTestCase, DjangoTestCase):
+    DEFAULT_CHARSET = 'utf8'
+
+    def test_mass_mail(self):
+        send_mass_mail(((
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example%s@example.net>' % i],
+        ) for i in range(10)))
+
+        for i in range(10):
+            message = django_mail.outbox[i].message()
+            self.assertEllipsisMatch((
+                '''MIME-Version: 1.0\n'''
+                '''Content-Type: text/plain; charset="UTF-8"\n'''
+                '''Content-Transfer-Encoding: base64\n'''
+                '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
+                '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
+                '''To: =?UTF-8?b?5a6b5YWI?= <example%s@example.net>\n'''
+                '''Date: ...\n'''
+                '''Message-ID: <...>\n'''
+                '''\n'''
+                '''5pys5paH\n''') % i,
+                message.as_string())
+
+    def test_mass_mail_encoding(self):
+        send_mass_mail(((
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example%s@example.net>' % i],
+        ) for i in range(10)), encoding='iso-2022-jp')
+
+        for i in range(10):
+            message = django_mail.outbox[i].message()
+            self.assertEllipsisMatch((
+                '''MIME-Version: 1.0\n'''
+                '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
+                '''Content-Transfer-Encoding: 7bit\n'''
+                '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
+                '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
+                '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example%s@example.net>\n'''
+                '''Date: ...\n'''
+                '''Message-ID: <...>\n'''
+                '''\n'''
+                '''\x1b$BK\\J8\x1b(B''') % i,
+                message.as_string())
+
+    def test_mass_mail_encoding_inline(self):
+        send_mass_mail((
+            (
+               u'件名',
+               u'本文',
+               u'差出人 <example-from@example.net>',
+               [u'宛先 <example0@example.net>'],
+               'iso-2022-jp',
+            ),
+            (
+               u'件名',
+               u'本文',
+               u'差出人 <example-from@example.net>',
+               [u'宛先 <example1@example.net>'],
+            ),
+            (
+               u'件名',
+               u'本文',
+               u'差出人 <example-from@example.net>',
+               [u'宛先 <example2@example.net>'],
+               'iso-2022-jp',
+            )
+        ))
+
+        message = django_mail.outbox[0].message()
+        self.assertEllipsisMatch(
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
+            '''Content-Transfer-Encoding: 7bit\n'''
+            '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
+            '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
+            '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example0@example.net>\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''\x1b$BK\\J8\x1b(B''',
+            message.as_string())
+
+        message = django_mail.outbox[1].message()
+        self.assertEllipsisMatch(
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="UTF-8"\n'''
+            '''Content-Transfer-Encoding: base64\n'''
+            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
+            '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
+            '''To: =?UTF-8?b?5a6b5YWI?= <example1@example.net>\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''5pys5paH\n''',
+            message.as_string())
+
+        message = django_mail.outbox[2].message()
+        self.assertEllipsisMatch(
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
+            '''Content-Transfer-Encoding: 7bit\n'''
+            '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
+            '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
+            '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example2@example.net>\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''\x1b$BK\\J8\x1b(B''',
+            message.as_string())
+
+    def test_mass_mail_encoding_inline2(self):
+        send_mass_mail((
+            (
+               u'件名',
+               u'本文',
+               u'差出人 <example-from@example.net>',
+               [u'宛先 <example0@example.net>'],
+               'iso-2022-jp',
+            ),
+            (
+               u'件名',
+               u'本文',
+               u'差出人 <example-from@example.net>',
+               [u'宛先 <example1@example.net>'],
+            ),
+            (
+               u'件名',
+               u'本文',
+               u'差出人 <example-from@example.net>',
+               [u'宛先 <example2@example.net>'],
+               'iso-2022-jp',
+            )
+        ), encoding='cp932')
+
+        message = django_mail.outbox[0].message()
+        self.assertEllipsisMatch(
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
+            '''Content-Transfer-Encoding: 7bit\n'''
+            '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
+            '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
+            '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example0@example.net>\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''\x1b$BK\\J8\x1b(B''',
+            message.as_string())
+
+        message = django_mail.outbox[1].message()
+        self.assertEllipsisMatch(
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="SHIFT-JIS"\n'''
+            '''Content-Transfer-Encoding: 8bit\n'''
+            '''Subject: =?SHIFT-JIS?b?jI+WvA==?=\n'''
+            '''From: =?SHIFT-JIS?b?jbePb5Bs?= <example-from@example.net>\n'''
+            '''To: =?SHIFT-JIS?b?iLaQ5g==?= <example1@example.net>\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''\x96{\x95\xb6''',
+            message.as_string())
+
+        message = django_mail.outbox[2].message()
+        self.assertEllipsisMatch(
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
+            '''Content-Transfer-Encoding: 7bit\n'''
+            '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
+            '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
+            '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example2@example.net>\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''\x1b$BK\\J8\x1b(B''',
+            message.as_string())
