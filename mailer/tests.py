@@ -541,3 +541,72 @@ class MassMailTest(MailTestCase, DjangoTestCase):
             '''\n'''
             '''\x1b$BK\\J8\x1b(B''',
             message.as_string())
+
+
+    def test_mass_mail_pre_send(self):
+        from mailer.signals import mail_pre_send
+        
+        test_list = []
+
+        def pre_send_signal(sender, message, **kwargs):
+            self.assertEqual(message.subject, u'件名')
+            self.assertEqual(message.body, u'本文')
+            test_list.extend(message.to)
+        mail_pre_send.connect(pre_send_signal)
+
+
+        send_mass_mail(((
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example%s@example.net>' % i],
+        ) for i in range(10)), encoding='iso-2022-jp')
+
+        self.assertEqual(test_list, 
+            [
+                u'宛先 <example0@example.net>',
+                u'宛先 <example1@example.net>',
+                u'宛先 <example2@example.net>',
+                u'宛先 <example3@example.net>',
+                u'宛先 <example4@example.net>',
+                u'宛先 <example5@example.net>',
+                u'宛先 <example6@example.net>',
+                u'宛先 <example7@example.net>',
+                u'宛先 <example8@example.net>',
+                u'宛先 <example9@example.net>',
+            ]
+        )
+
+    def test_mass_mail_post_send(self):
+        from mailer.signals import mail_post_send
+        
+        test_list = []
+
+        def post_send_signal(sender, message, **kwargs):
+            self.assertEqual(message.subject, u'件名')
+            self.assertEqual(message.body, u'本文')
+            test_list.extend(message.to)
+        mail_post_send.connect(post_send_signal)
+
+
+        send_mass_mail(((
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example%s@example.net>' % i],
+        ) for i in range(10)), encoding='iso-2022-jp')
+
+        self.assertEqual(test_list, 
+            [
+                u'宛先 <example0@example.net>',
+                u'宛先 <example1@example.net>',
+                u'宛先 <example2@example.net>',
+                u'宛先 <example3@example.net>',
+                u'宛先 <example4@example.net>',
+                u'宛先 <example5@example.net>',
+                u'宛先 <example6@example.net>',
+                u'宛先 <example7@example.net>',
+                u'宛先 <example8@example.net>',
+                u'宛先 <example9@example.net>',
+            ]
+        )

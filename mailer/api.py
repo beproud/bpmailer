@@ -278,9 +278,13 @@ def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
         message = EmailMessage(subject, message, sender, recipient)
         if charset:
             message.encoding = charset
+        mail_pre_send.send(sender=message, message=message)
         return message
     
-    return connection.send_messages(map(_message, datatuple))
+    messages = map(_message, datatuple)
+    return_val = connection.send_messages(messages)
+    messages = map(lambda msg: mail_post_send.send(sender=msg, message=msg), messages)
+    return return_val
 
 def mail_managers(subject, message, fail_silently=False, encoding=None):
     if not settings.MANAGERS:
