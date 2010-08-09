@@ -114,7 +114,7 @@ class EmailMessage(django_mail.EmailMessage):
         # accommodate that when doing comparisons.
         header_names = [key.lower() for key in self.extra_headers]
         if 'date' not in header_names:
-            msg['Date'] = formatdate()
+            msg['Date'] = formatdate(localtime=getattr(settings, "EMAIL_USE_LOCALTIME", False))
         if 'message-id' not in header_names:
             msg['Message-ID'] = make_msgid()
         for name, value in self.extra_headers.items():

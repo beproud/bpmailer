@@ -1,4 +1,7 @@
 # vim:fileencoding=utf-8
+import os
+import time
+
 from django.test import TestCase as DjangoTestCase
 from django.core import mail as django_mail
 from django.conf import settings
@@ -8,10 +11,11 @@ from mailer import *
 AVAILABLE_SETTINGS = [
     "EMAIL_CHARSET", "EMAIL_CHARSETS",
     "EMAIL_CHARSET_ALIASES", "EMAIL_CHARSET_CODECS",
-    "EMAIL_ALL_FORWARD",
+    "EMAIL_ALL_FORWARD", "EMAIL_USE_LOCALTIME",
 ]
 
 class MailTestCase(object):
+    TIME_ZONE = None
     DEFAULT_CHARSET = None
     DEBUG = None
     EMAIL_CHARSET = None
@@ -19,6 +23,7 @@ class MailTestCase(object):
     EMAIL_CHARSET_ALIASES = None
     EMAIL_CHARSET_CODECS = None
     EMAIL_ALL_FORWARD = None
+    EMAIL_USE_LOCALTIME = None
 
     def assertEllipsisMatch(self, first, second, msg=None):
         from doctest import _ellipsis_match
@@ -34,12 +39,18 @@ class MailTestCase(object):
         self._old_email_ALIASES = charset.ALIASES
         self._old_email_CODEC_MAP = charset.ALIASES
 
+        self._old_DEFAULT_CHARSET = settings.DEFAULT_CHARSET
         if self.DEFAULT_CHARSET is not None:
-            self._old_DEFAULT_CHARSET = settings.DEFAULT_CHARSET
             settings.DEFAULT_CHARSET = self.DEFAULT_CHARSET
+        self._old_DEBUG = settings.DEBUG
         if self.DEBUG is not None:
-            self._old_DEBUG = settings.DEBUG
             settings.DEBUG = self.DEBUG
+        self._old_TIME_ZONE = settings.TIME_ZONE
+        if self.TIME_ZONE is not None:
+            settings.TIME_ZONE = self.TIME_ZONE
+
+        os.environ['TZ'] = settings.TIME_ZONE
+        time.tzset()
 
         for setting_name in AVAILABLE_SETTINGS:
             setting_value = getattr(self, setting_name, None)
@@ -58,10 +69,12 @@ class MailTestCase(object):
         charset.ALIASES = self._old_email_ALIASES
         charset.ALIASES = self._old_email_CODEC_MAP
 
-        if self.DEFAULT_CHARSET is not None:
+        if self.DEFAULT_CHARSET != self._old_DEFAULT_CHARSET:
             settings.DEFAULT_CHARSET = self._old_DEFAULT_CHARSET
-        if self.DEBUG is not None:
+        if self.DEBUG != self._old_DEBUG:
             settings.DEBUG = self._old_DEBUG
+        if self.TIME_ZONE != self._old_TIME_ZONE:
+            settings.TIME_ZONE = self._old_TIME_ZONE
 
         for setting_name in AVAILABLE_SETTINGS:
             old_setting_value = getattr(self, "_old_"+setting_name, None)
@@ -610,3 +623,57 @@ class MassMailTest(MailTestCase, DjangoTestCase):
                 u'宛先 <example9@example.net>',
             ]
         )
+
+class UTCTimeTestCase(MailTestCase, DjangoTestCase):
+    DEFAULT_CHARSET = 'utf-8'
+    TIME_ZONE='Asia/Tokyo'
+    EMAIL_USE_LOCALTIME=False
+
+    def test_email_utc_strict(self):
+        send_mail(
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example@example.net>'],
+        )
+
+        message = django_mail.outbox[0].message()
+        self.assertEllipsisMatch(
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="UTF-8"\n'''
+            '''Content-Transfer-Encoding: base64\n'''
+            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
+            '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
+            '''To: =?UTF-8?b?5a6b5YWI?= <example@example.net>\n'''
+            '''Date: ...-0000\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''5pys5paH\n''',
+            message.as_string())
+
+class LocalTimeTestCase(MailTestCase, DjangoTestCase):
+    DEFAULT_CHARSET = 'utf-8'
+    TIME_ZONE='Asia/Tokyo'
+    EMAIL_USE_LOCALTIME=True
+
+    def test_email_localtime_strict(self):
+        send_mail(
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example@example.net>'],
+        )
+
+        message = django_mail.outbox[0].message()
+        self.assertEllipsisMatch(
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="UTF-8"\n'''
+            '''Content-Transfer-Encoding: base64\n'''
+            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
+            '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
+            '''To: =?UTF-8?b?5a6b5YWI?= <example@example.net>\n'''
+            '''Date: ...+0900\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''5pys5paH\n''',
+            message.as_string())
