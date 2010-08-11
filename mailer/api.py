@@ -21,8 +21,6 @@ from django.core.mail import (
 
 import logging
 
-from signals import mail_pre_send, mail_post_send
-
 __version__ = '0.2'
 
 __all__ = (
@@ -55,7 +53,28 @@ else:
     from django.utils.encoding import force_unicode
 
     def get_connection(backend=None, fail_silently=False, **kwds):
-        return SMTPConnection(fail_silently=fail_silently, **kwds)
+        """Load an e-mail backend and return an instance of it.
+
+        If backend is None (default) settings.EMAIL_BACKEND is used.
+
+        Both fail_silently and other keyword arguments are used in the
+        constructor of the backend.
+        """
+        from django.utils.importlib import import_module
+
+        path = backend or getattr(settings, 'EMAIL_BACKEND', 'mailer.backends.smtp.EmailBackend')
+        try:
+            mod_name, klass_name = path.rsplit('.', 1)
+            mod = import_module(mod_name)
+        except ImportError, e:
+            raise ImproperlyConfigured(('Error importing email backend module %s: "%s"'
+                                        % (mod_name, e)))
+        try:
+            klass = getattr(mod, klass_name)
+        except AttributeError:
+            raise ImproperlyConfigured(('Module "%s" does not define a '
+                                        '"%s" class' % (mod_name, klass_name)))
+        return klass(fail_silently=fail_silently, **kwds)
  
     def forbid_multi_line_headers(name, val, encoding):
         """Forbids multi-line headers, to prevent header injection."""
@@ -101,6 +120,11 @@ else:
 
 
 class EmailMessage(django_mail.EmailMessage):
+    def get_connection(self, fail_silently=False):
+        if not self.connection:
+            self.connection = get_connection(fail_silently=fail_silently)
+        return self.connection
+
     def message(self):
         encoding = self.encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
         msg = SafeMIMEText(smart_str(self.body, encoding),
@@ -196,9 +220,7 @@ def send_mail(subject, message, from_email, recipient_list,
             to=recipient_list,
         )
         msg.encoding = encoding
-        mail_pre_send.send(sender=msg, message=msg)
         return_val = msg.send()
-        mail_post_send.send(sender=msg, message=msg)
         log_message(msg, return_val) 
         return return_val
     except Exception, e:
@@ -278,12 +300,10 @@ def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
         message = EmailMessage(subject, message, sender, recipient)
         if charset:
             message.encoding = charset
-        mail_pre_send.send(sender=message, message=message)
         return message
     
     messages = map(_message, datatuple)
     return_val = connection.send_messages(messages)
-    messages = map(lambda msg: mail_post_send.send(sender=msg, message=msg), messages)
     return return_val
 
 def mail_managers(subject, message, fail_silently=False, encoding=None):

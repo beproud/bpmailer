@@ -12,6 +12,7 @@ AVAILABLE_SETTINGS = [
     "EMAIL_CHARSET", "EMAIL_CHARSETS",
     "EMAIL_CHARSET_ALIASES", "EMAIL_CHARSET_CODECS",
     "EMAIL_ALL_FORWARD", "EMAIL_USE_LOCALTIME",
+    "EMAIL_BACKEND",
 ]
 
 class MailTestCase(object):
@@ -24,6 +25,7 @@ class MailTestCase(object):
     EMAIL_CHARSET_CODECS = None
     EMAIL_ALL_FORWARD = None
     EMAIL_USE_LOCALTIME = None
+    EMAIL_BACKEND = 'mailer.backends.locmem.EmailBackend' 
 
     def assertEllipsisMatch(self, first, second, msg=None):
         from doctest import _ellipsis_match
