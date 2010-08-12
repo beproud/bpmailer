@@ -626,6 +626,40 @@ class MassMailTest(MailTestCase, DjangoTestCase):
             ]
         )
 
+    def test_mass_mail_message_obj(self):
+        from itertools import chain
+        send_mass_mail(chain(((
+               u'件名',
+               u'本文',
+               u'差出人 <example-from@example.net>',
+               [u'宛先 <example%s@example.net>' % i],
+            ) for i in range(4)),
+            (EmailMessage(u'件名',u'本文', u'差出人 <example-from@example.net>', [u'宛先 <example4@example.net>']),),
+            ((
+               u'件名',
+               u'本文',
+               u'差出人 <example-from@example.net>',
+               [u'宛先 <example%s@example.net>' % i],
+            ) for i in range(5, 9)),
+            (EmailMessage(u'件名',u'本文', u'差出人 <example-from@example.net>', [u'宛先 <example9@example.net>']),)
+        ))
+
+        for i in range(10):
+            message = django_mail.outbox[i].message()
+            self.assertEllipsisMatch((
+                '''MIME-Version: 1.0\n'''
+                '''Content-Type: text/plain; charset="UTF-8"\n'''
+                '''Content-Transfer-Encoding: base64\n'''
+                '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
+                '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
+                '''To: =?UTF-8?b?5a6b5YWI?= <example%s@example.net>\n'''
+                '''Date: ...\n'''
+                '''Message-ID: <...>\n'''
+                '''\n'''
+                '''5pys5paH\n''') % i,
+                message.as_string())
+
+
 class UTCTimeTestCase(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf-8'
     TIME_ZONE='Asia/Tokyo'

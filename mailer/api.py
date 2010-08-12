@@ -292,6 +292,8 @@ def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
     connection = get_connection(username=auth_user, password=auth_password,
                                 fail_silently=fail_silently)
     def _message(args):
+        if isinstance(args, EmailMessage):
+            return args
         if len(args) > 4:
             subject, message, sender, recipient, charset = args
         else:
@@ -302,8 +304,7 @@ def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
             message.encoding = charset
         return message
     
-    messages = map(_message, datatuple)
-    return_val = connection.send_messages(messages)
+    return_val = connection.send_messages(map(_message, datatuple))
     return return_val
 
 def mail_managers(subject, message, fail_silently=False, encoding=None):
