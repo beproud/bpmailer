@@ -36,4 +36,30 @@ class BaseEmailBackend(object):
         Sends one or more EmailMessage objects and returns the number of email
         messages sent.
         """
+        num_sent = 0
+        for email_message in email_messages:
+            if self._send_message_wrapper(email_message):
+                num_sent += 1
+        return num_sent
+
+    def _send_message_wrapper(self, email_message):
+        """A helper method that does the actual sending."""
+        from mailer.signals import mail_pre_send, mail_post_send
+
+        if not email_message.recipients():
+            return False
+
+        try:
+            mail_pre_send.send(sender=email_message, message=email_message)
+            self._send_message(email_message)
+            mail_post_send.send(sender=email_message, message=email_message)
+        except:
+            from mailer.api import log_exception
+            log_exception("%s: Mail Error" % self)
+            if not self.fail_silently:
+                raise
+            return False
+        return True
+ 
+    def _send_message(self, email_message):
         raise NotImplementedError

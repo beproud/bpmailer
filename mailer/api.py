@@ -206,27 +206,22 @@ class EmailMultiAlternatives(EmailMessage):
 def send_mail(subject, message, from_email, recipient_list,
               fail_silently=False, auth_user=None, auth_password=None, encoding=None):
 
-    try:
-        if settings.DEBUG and hasattr(settings, "EMAIL_ALL_FORWARD"):
-            recipient_list = [settings.EMAIL_ALL_FORWARD]
-            from_email = settings.EMAIL_ALL_FORWARD
+    if settings.DEBUG and hasattr(settings, "EMAIL_ALL_FORWARD"):
+        recipient_list = [settings.EMAIL_ALL_FORWARD]
+        from_email = settings.EMAIL_ALL_FORWARD
 
-        connection = get_connection(username=auth_user, password=auth_password,
-                                    fail_silently=False)
-        msg = EmailMessage(
-            subject=subject,
-            body=message,
-            from_email=from_email,
-            to=recipient_list,
-        )
-        msg.encoding = encoding
-        return_val = msg.send()
-        log_message(msg, return_val) 
-        return return_val
-    except Exception, e:
-        log_exception("Mail Error")
-        if not fail_silently:
-            raise
+    connection = get_connection(username=auth_user, password=auth_password,
+                                fail_silently=False)
+    msg = EmailMessage(
+        subject=subject,
+        body=message,
+        from_email=from_email,
+        to=recipient_list,
+    )
+    msg.encoding = encoding
+    return_val = msg.send()
+    log_message(msg, return_val) 
+    return return_val
 
 def render_message(template_name, extra_context={}):
     """
@@ -251,25 +246,28 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
     so that the first line of the template is the subject. All subsequent lines
     are used as the body of the email message.
     """
-    try:
-        if not isinstance(recipient_list, list) and not isinstance(recipient_list, tuple):
-            recipient_list = [recipient_list]
+    if not isinstance(recipient_list, list) and not isinstance(recipient_list, tuple):
+        recipient_list = [recipient_list]
         
+    try:
         subject,message = render_message(template_name, extra_context)
-        return send_mail(
-            subject=subject,
-            message=message,
-            recipient_list=recipient_list,
-            from_email=from_email,
-            fail_silently=fail_silently,
-            auth_user=auth_user,
-            auth_password=auth_password,
-            encoding=encoding,
-        )
     except Exception, e:
         log_exception("Mail Error")
-        if not fail_silently:
+        if fail_silently:
+            return
+        else:
             raise
+
+    return send_mail(
+        subject=subject,
+        message=message,
+        recipient_list=recipient_list,
+        from_email=from_email,
+        fail_silently=fail_silently,
+        auth_user=auth_user,
+        auth_password=auth_password,
+        encoding=encoding,
+    )
 
 def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
                    auth_password=None, encoding=None):

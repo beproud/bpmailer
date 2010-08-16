@@ -1,5 +1,6 @@
 """SMTP email backend class."""
 
+import logging
 import smtplib
 import socket
 import threading
@@ -8,6 +9,8 @@ from django.conf import settings
 from django.core.mail import DNS_NAME
 
 from mailer.backends.base import BaseEmailBackend
+
+logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
 
 class EmailBackend(BaseEmailBackend):
     """
@@ -83,7 +86,7 @@ class EmailBackend(BaseEmailBackend):
                 return
             num_sent = 0
             for message in email_messages:
-                sent = self._send(message)
+                sent = self._send_message_wrapper(message)
                 if sent:
                     num_sent += 1
             if new_conn_created:
@@ -92,21 +95,8 @@ class EmailBackend(BaseEmailBackend):
             self._lock.release()
         return num_sent
 
-    def _send(self, email_message):
+    def _send_message(self, email_message):
         """A helper method that does the actual sending."""
-        from mailer.signals import mail_pre_send, mail_post_send
-
-        if not email_message.recipients():
-            return False
-
-        mail_pre_send.send(sender=email_message, message=email_message)
-        try:
-            self.connection.sendmail(email_message.from_email,
-                    email_message.recipients(),
-                    email_message.message().as_string())
-        except:
-            if not self.fail_silently:
-                raise
-            return False
-        mail_post_send.send(sender=email_message, message=email_message)
-        return True
+        self.connection.sendmail(email_message.from_email,
+                email_message.recipients(),
+                email_message.message().as_string())

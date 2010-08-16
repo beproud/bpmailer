@@ -10,6 +10,9 @@ def main():
     You can play with a django model without a complete django app installation.
     http://www.djangosnippets.org/snippets/1044/
     """
+    import logging
+    logging.basicConfig()
+ 
     os.environ["DJANGO_SETTINGS_MODULE"] = "django.conf.global_settings"
     from django.conf import global_settings
 

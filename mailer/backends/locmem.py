@@ -19,11 +19,6 @@ class EmailBackend(BaseEmailBackend):
         if not hasattr(mail, 'outbox'):
             mail.outbox = []
 
-    def send_messages(self, messages):
+    def _send_message(self, email_message):
         """Redirect messages to the dummy outbox"""
-        from mailer.signals import mail_pre_send, mail_post_send
-        for msg in messages:
-            mail_pre_send.send(sender=msg, message=msg)
-            mail.outbox.append(msg)
-            mail_post_send.send(sender=msg, message=msg)
-        return len(messages)
+        mail.outbox.append(email_message)
