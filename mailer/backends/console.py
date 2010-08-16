@@ -22,17 +22,19 @@ class EmailBackend(BaseEmailBackend):
         if not email_messages:
             return
         self._lock.acquire()
+        num_sent = 0
         try:
             # The try-except is nested to allow for
             # Python 2.4 support (Refs #12147)
             stream_created = self.open()
             for message in email_messages:
-                self._send_message_wrapper(message)
+                if self._send_message_wrapper(message):
+                    num_sent += 1
             if stream_created:
                 self.close()
         finally:
             self._lock.release()
-        return len(email_messages)
+        return num_sent
 
     def _send_message(self, email_message):
         self.stream.write('%s\n' % email_message.message().as_string())
