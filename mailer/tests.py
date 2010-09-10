@@ -14,9 +14,12 @@ from mailer import *
 # Suppress logging
 logging.getLogger("").handlers = [BufferingHandler(0)]
 
+class EmailError(Exception):
+    pass
+
 class ErrorEmailBackend(BaseEmailBackend):
     def _send_message(self, email_message):
-        raise Exception(u"ERROR")
+        raise EmailError(u"ERROR")
 
 AVAILABLE_SETTINGS = [
     "EMAIL_CHARSET", "EMAIL_CHARSETS",
@@ -26,6 +29,8 @@ AVAILABLE_SETTINGS = [
 ]
 
 class MailTestCase(object):
+    ADMINS = (('Admin', 'admin@example.net'),)
+    MANAGERS = (('Manager', 'manager@example.net'),)
     TIME_ZONE = None
     DEFAULT_CHARSET = None
     DEBUG = None
@@ -51,6 +56,12 @@ class MailTestCase(object):
         self._old_email_ALIASES = charset.ALIASES
         self._old_email_CODEC_MAP = charset.ALIASES
 
+        self._old_ADMINS = settings.ADMINS
+        if self.ADMINS is not None:
+            settings.ADMINS = self.ADMINS
+        self._old_MANAGERS = settings.MANAGERS
+        if self.MANAGERS is not None:
+            settings.MANAGERS = self.MANAGERS
         self._old_DEFAULT_CHARSET = settings.DEFAULT_CHARSET
         if self.DEFAULT_CHARSET is not None:
             settings.DEFAULT_CHARSET = self.DEFAULT_CHARSET
@@ -770,7 +781,7 @@ class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
            fail_silently=True,
         )
 
-    def test_fail_silently(self):
+    def test_fail_loud(self):
         try:
             send_mail(
                u'件名',
@@ -779,7 +790,7 @@ class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
                [u'宛先 <example@example.net>'],
             )
             self.fail("Expected Error")
-        except:
+        except EmailError:
             pass
         try:
             send_template_mail(
@@ -792,7 +803,7 @@ class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
                 },
             )
             self.fail("Expected Error")
-        except:
+        except EmailError:
             pass
         try:
             send_mass_mail(((
@@ -802,16 +813,15 @@ class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
                [u'宛先 <example%s@example.net>' % i],
             ) for i in range(10)))
             self.fail("Expected Error")
-        except:
+        except EmailError:
             pass
         try:
             mail_managers(
                u'件名',
                u'本文',
-               fail_silently=True,
             )
             self.fail("Expected Error")
-        except:
+        except EmailError:
             pass
         try:
             mail_managers_template(
@@ -820,18 +830,16 @@ class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
                     'subject': u'件名',
                     'body': u'本文',
                 },
-               fail_silently=True,
             )
             self.fail("Expected Error")
-        except:
+        except EmailError:
             pass
         try:
             mail_admins(
                u'件名',
                u'本文',
-               fail_silently=True,
             )
             self.fail("Expected Error")
-        except:
+        except EmailError:
             pass
 

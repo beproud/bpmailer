@@ -211,12 +211,13 @@ def send_mail(subject, message, from_email, recipient_list,
         from_email = settings.EMAIL_ALL_FORWARD
 
     connection = get_connection(username=auth_user, password=auth_password,
-                                fail_silently=False)
+                                fail_silently=fail_silently)
     msg = EmailMessage(
         subject=subject,
         body=message,
         from_email=from_email,
         to=recipient_list,
+        connection=connection,
     )
     msg.encoding = encoding
     return_val = msg.send()
@@ -293,11 +294,17 @@ def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
         if isinstance(args, EmailMessage):
             return args
         if len(args) > 4:
-            subject, message, sender, recipient, charset = args
+            subject, body, sender, recipient, charset = args
         else:
-            subject, message, sender, recipient = args
+            subject, body, sender, recipient = args
             charset = encoding or None
-        message = EmailMessage(subject, message, sender, recipient)
+        message = EmailMessage(
+            subject=subject,
+            body=body,
+            from_email=sender,
+            to=recipient,
+            connection=connection,
+        )
         if charset:
             message.encoding = charset
         return message
