@@ -1,12 +1,22 @@
 # vim:fileencoding=utf-8
 import os
 import time
+import logging
+from logging.handlers import BufferingHandler
 
 from django.test import TestCase as DjangoTestCase
 from django.core import mail as django_mail
 from django.conf import settings
 
+from mailer.backends.base import BaseEmailBackend
 from mailer import *
+
+# Suppress logging
+logging.getLogger("").handlers = [BufferingHandler(0)]
+
+class ErrorEmailBackend(BaseEmailBackend):
+    def _send_message(self, email_message):
+        raise Exception(u"ERROR")
 
 AVAILABLE_SETTINGS = [
     "EMAIL_CHARSET", "EMAIL_CHARSETS",
@@ -713,3 +723,115 @@ class LocalTimeTestCase(MailTestCase, DjangoTestCase):
             '''\n'''
             '''5pys5paH\n''',
             message.as_string())
+
+class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
+    EMAIL_BACKEND='mailer.tests.ErrorEmailBackend'
+
+    def test_fail_silently(self):
+        send_mail(
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example@example.net>'],
+           fail_silently=True,
+        )
+        send_template_mail(
+            u'mailer/mail.tpl',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
+            extra_context={
+                'subject': u'件名',
+                'body': u'本文',
+            },
+            fail_silently=True,
+        )
+        send_mass_mail(((
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example%s@example.net>' % i],
+        ) for i in range(10)), fail_silently=True)
+        mail_managers(
+           u'件名',
+           u'本文',
+           fail_silently=True,
+        )
+        mail_managers_template(
+           u'mailer/mail.tpl',
+            extra_context={
+                'subject': u'件名',
+                'body': u'本文',
+            },
+           fail_silently=True,
+        )
+        mail_admins(
+           u'件名',
+           u'本文',
+           fail_silently=True,
+        )
+
+    def test_fail_silently(self):
+        try:
+            send_mail(
+               u'件名',
+               u'本文',
+               u'差出人 <example-from@example.net>',
+               [u'宛先 <example@example.net>'],
+            )
+            self.fail("Expected Error")
+        except:
+            pass
+        try:
+            send_template_mail(
+                u'mailer/mail.tpl',
+                u'差出人 <example-from@example.net>',
+                [u'宛先 <example@example.net>'],
+                extra_context={
+                    'subject': u'件名',
+                    'body': u'本文',
+                },
+            )
+            self.fail("Expected Error")
+        except:
+            pass
+        try:
+            send_mass_mail(((
+               u'件名',
+               u'本文',
+               u'差出人 <example-from@example.net>',
+               [u'宛先 <example%s@example.net>' % i],
+            ) for i in range(10)))
+            self.fail("Expected Error")
+        except:
+            pass
+        try:
+            mail_managers(
+               u'件名',
+               u'本文',
+               fail_silently=True,
+            )
+            self.fail("Expected Error")
+        except:
+            pass
+        try:
+            mail_managers_template(
+               u'mailer/mail.tpl',
+                extra_context={
+                    'subject': u'件名',
+                    'body': u'本文',
+                },
+               fail_silently=True,
+            )
+            self.fail("Expected Error")
+        except:
+            pass
+        try:
+            mail_admins(
+               u'件名',
+               u'本文',
+               fail_silently=True,
+            )
+            self.fail("Expected Error")
+        except:
+            pass
+

@@ -240,7 +240,7 @@ def render_message(template_name, extra_context={}):
     return rendered_mail[0], "\n".join(rendered_mail[1:])
     
 def send_template_mail(template_name, from_email, recipient_list, extra_context={},
-                       fail_silently=True, auth_user=None, auth_password=None, encoding=None):
+                       fail_silently=False, auth_user=None, auth_password=None, encoding=None):
     u"""
     Send an email using a django template. The template should be formatted
     so that the first line of the template is the subject. All subsequent lines
@@ -317,7 +317,7 @@ def mail_managers(subject, message, fail_silently=False, encoding=None):
         encoding=encoding,
     )
 
-def mail_managers_template(template_name, extra_context={}, fail_silently=True, encoding=None):
+def mail_managers_template(template_name, extra_context={}, fail_silently=False, encoding=None):
     if not settings.MANAGERS:
         return
     return send_template_mail(
