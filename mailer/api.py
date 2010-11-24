@@ -204,13 +204,13 @@ class EmailMultiAlternatives(EmailMessage):
         return msg
 
 def send_mail(subject, message, from_email, recipient_list,
-              fail_silently=False, auth_user=None, auth_password=None, encoding=None):
+              fail_silently=False, auth_user=None, auth_password=None, encoding=None, connection=None):
 
     if settings.DEBUG and hasattr(settings, "EMAIL_ALL_FORWARD"):
         recipient_list = [settings.EMAIL_ALL_FORWARD]
         from_email = settings.EMAIL_ALL_FORWARD
 
-    connection = get_connection(username=auth_user, password=auth_password,
+    connection = connection or get_connection(username=auth_user, password=auth_password,
                                 fail_silently=fail_silently)
     msg = EmailMessage(
         subject=subject,
@@ -241,7 +241,7 @@ def render_message(template_name, extra_context={}):
     return rendered_mail[0], "\n".join(rendered_mail[1:])
     
 def send_template_mail(template_name, from_email, recipient_list, extra_context={},
-                       fail_silently=False, auth_user=None, auth_password=None, encoding=None):
+                       fail_silently=False, auth_user=None, auth_password=None, encoding=None, connection=None):
     u"""
     Send an email using a django template. The template should be formatted
     so that the first line of the template is the subject. All subsequent lines
@@ -268,10 +268,11 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
         auth_user=auth_user,
         auth_password=auth_password,
         encoding=encoding,
+        connection=connection,
     )
 
 def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
-                   auth_password=None, encoding=None):
+                   auth_password=None, encoding=None, connection=None):
     """
     Given a datatuple of (subject, message, from_email, recipient_list), sends
     each message to each recipient list. Returns the number of e-mails sent.
@@ -288,7 +289,7 @@ def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
     Note: The API for this method is frozen. New code wanting to extend the
     functionality should use the EmailMessage class directly.
     """
-    connection = get_connection(username=auth_user, password=auth_password,
+    connection = connection or get_connection(username=auth_user, password=auth_password,
                                 fail_silently=fail_silently)
     def _message(args):
         if isinstance(args, EmailMessage):
