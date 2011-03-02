@@ -44,7 +44,7 @@ class BaseEmailBackend(object):
 
     def _send_message_wrapper(self, email_message):
         """A helper method that does the actual sending."""
-        from mailer.signals import mail_pre_send, mail_post_send
+        from beproud.django.mailer.signals import mail_pre_send, mail_post_send
 
         if not email_message.recipients():
             return False
@@ -54,7 +54,7 @@ class BaseEmailBackend(object):
             self._send_message(email_message)
             mail_post_send.send(sender=email_message, message=email_message)
         except:
-            from mailer.api import log_exception
+            from beproud.django.mailer.api import log_exception
             log_exception("%s: Mail Error" % self)
             if not self.fail_silently:
                 raise

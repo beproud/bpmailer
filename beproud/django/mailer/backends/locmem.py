@@ -4,7 +4,7 @@ Backend for test environment.
 
 from django.core import mail
 
-from mailer.backends.base import BaseEmailBackend
+from beproud.django.mailer.backends.base import BaseEmailBackend
 
 class EmailBackend(BaseEmailBackend):
     """A email backend for use during test sessions.

@@ -5,7 +5,7 @@ import os
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from mailer.backends.console import EmailBackend as ConsoleEmailBackend
+from beproud.django.mailer.backends.console import EmailBackend as ConsoleEmailBackend
 
 class EmailBackend(ConsoleEmailBackend):
     def __init__(self, *args, **kwargs):

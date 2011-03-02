@@ -10,6 +10,7 @@ from email.Utils import formatdate, getaddresses, formataddr
 from django import VERSION as DJANGO_VERSION
 from django.core import mail as django_mail
 from django.utils.encoding import smart_str
+from django.core.exceptions import ImproperlyConfigured
 from django import template
 from django.template.loader import render_to_string
 from django.conf import settings

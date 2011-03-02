@@ -7,7 +7,7 @@ import threading
 
 from django.conf import settings
 
-from mailer.backends.base import BaseEmailBackend
+from beproud.django.mailer.backends.base import BaseEmailBackend
 
 logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
 

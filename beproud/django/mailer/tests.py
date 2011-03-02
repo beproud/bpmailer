@@ -8,8 +8,8 @@ from django.test import TestCase as DjangoTestCase
 from django.core import mail as django_mail
 from django.conf import settings
 
-from mailer.backends.base import BaseEmailBackend
-from mailer import *
+from beproud.django.mailer.backends.base import BaseEmailBackend
+from beproud.django.mailer import *
 
 # Suppress logging
 logging.getLogger("").handlers = [BufferingHandler(0)]
@@ -40,7 +40,7 @@ class MailTestCase(object):
     EMAIL_CHARSET_CODECS = None
     EMAIL_ALL_FORWARD = None
     EMAIL_USE_LOCALTIME = None
-    EMAIL_BACKEND = 'mailer.backends.locmem.EmailBackend' 
+    EMAIL_BACKEND = 'beproud.django.mailer.backends.locmem.EmailBackend' 
 
     def assertEllipsisMatch(self, first, second, msg=None):
         from doctest import _ellipsis_match
@@ -49,7 +49,7 @@ class MailTestCase(object):
                 (msg or '%r != %r' % (first, second))
     
     def setUp(self):
-        from mailer.models import init_mailer
+        from beproud.django.mailer.models import init_mailer
         from email import charset
 
         self._old_email_CHARSETS = charset.CHARSETS
@@ -84,7 +84,7 @@ class MailTestCase(object):
 
     def tearDown(self):
         from email import charset
-        from mailer.signals import mail_pre_send, mail_post_send
+        from beproud.django.mailer.signals import mail_pre_send, mail_post_send
         mail_pre_send.recievers = []
         mail_post_send.recievers = []
 
@@ -347,7 +347,7 @@ class SignalTest(MailTestCase, DjangoTestCase):
     EMAIL_CHARSET = 'iso-2022-jp'
 
     def test_pre_send_singnal(self):
-        from mailer.signals import mail_pre_send
+        from beproud.django.mailer.signals import mail_pre_send
         def pre_send_signal(sender, message, **kwargs):
             message.from_email = message.from_email.replace(u'\uff5e', u'\u301c')
             message.to = map(lambda x: x.replace(u'\uff5e', u'\u301c'), message.to)
@@ -378,7 +378,7 @@ class SignalTest(MailTestCase, DjangoTestCase):
             message.as_string())
 
     def test_post_send_singnal(self):
-        from mailer.signals import mail_post_send
+        from beproud.django.mailer.signals import mail_post_send
         
         test_list = []
 
@@ -580,7 +580,7 @@ class MassMailTest(MailTestCase, DjangoTestCase):
 
 
     def test_mass_mail_pre_send(self):
-        from mailer.signals import mail_pre_send
+        from beproud.django.mailer.signals import mail_pre_send
         
         test_list = []
 
@@ -614,7 +614,7 @@ class MassMailTest(MailTestCase, DjangoTestCase):
         )
 
     def test_mass_mail_post_send(self):
-        from mailer.signals import mail_post_send
+        from beproud.django.mailer.signals import mail_post_send
         
         test_list = []
 
@@ -736,7 +736,7 @@ class LocalTimeTestCase(MailTestCase, DjangoTestCase):
             message.as_string())
 
 class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
-    EMAIL_BACKEND='mailer.tests.ErrorEmailBackend'
+    EMAIL_BACKEND='beproud.django.mailer.tests.ErrorEmailBackend'
 
     def test_fail_silently(self):
         send_mail(

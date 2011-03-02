@@ -19,7 +19,7 @@ def main():
     global_settings.INSTALLED_APPS = (
         'django.contrib.auth',
         'django.contrib.contenttypes',
-        'mailer',
+        'beproud.django.mailer',
     )
     global_settings.DATABASE_ENGINE = "sqlite3"
     global_settings.DATABASE_NAME = ":memory:"

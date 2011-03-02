@@ -19,6 +19,10 @@ setup (
       'Programming Language :: Python',
       'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    packages=["mailer"],
+    packages=find_packages(),
+    namespace_packages=[
+        'beproud',
+        'beproud.django',
+    ],
     test_suite='tests.main',
 )
