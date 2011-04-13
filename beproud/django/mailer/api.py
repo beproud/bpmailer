@@ -63,7 +63,7 @@ else:
         """
         from django.utils.importlib import import_module
 
-        path = backend or getattr(settings, 'EMAIL_BACKEND', 'mailer.backends.smtp.EmailBackend')
+        path = backend or getattr(settings, 'EMAIL_BACKEND', 'beproud.django.mailer.backends.smtp.EmailBackend')
         try:
             mod_name, klass_name = path.rsplit('.', 1)
             mod = import_module(mod_name)
