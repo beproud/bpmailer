@@ -1,7 +1,5 @@
 #:coding=utf-8:
 
-import re
-from datetime import datetime,date,timedelta
 from email.MIMEText import MIMEText
 from email.MIMEMultipart import MIMEMultipart
 from email.Header import Header
@@ -11,14 +9,8 @@ from django import VERSION as DJANGO_VERSION
 from django.core import mail as django_mail
 from django.utils.encoding import smart_str
 from django.core.exceptions import ImproperlyConfigured
-from django import template
 from django.template.loader import render_to_string
 from django.conf import settings
-
-from django.core.mail import (
-    EmailMessage, SMTPConnection,
-    BadHeaderError, make_msgid,
-)
 
 import logging
 
@@ -44,6 +36,10 @@ __all__ = (
 )
 
 logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
+
+SMTPConnection = django_mail.SMTPConnection
+BadHeaderError = django_mail.BadHeaderError
+make_msgid = django_mail.make_msgid
 
 if DJANGO_VERSION > (1,2):
     from django.core.mail import (
@@ -234,7 +230,6 @@ def render_message(template_name, extra_context={}):
     passed to the template when it is rendered but can be
     overridden.
     """
-    from django.template.loader import render_to_string
     context = getattr(settings, "EMAIL_DEFAULT_CONTEXT", {})
     context.update(extra_context)
 
@@ -253,7 +248,7 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
         
     try:
         subject,message = render_message(template_name, extra_context)
-    except Exception, e:
+    except Exception:
         log_exception("Mail Error")
         if fail_silently:
             return

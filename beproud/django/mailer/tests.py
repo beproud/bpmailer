@@ -328,7 +328,6 @@ class DjangoMailUTF8TestCase(MailTestCase, DjangoTestCase):
         )
         
         message = django_mail.outbox[0].message()
-        msg_str = message.as_string()
         self.assertEllipsisMatch(
             '''MIME-Version: 1.0\n'''
             '''Content-Type: text/plain; charset="UTF-8"\n'''
