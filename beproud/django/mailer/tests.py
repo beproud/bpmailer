@@ -9,7 +9,15 @@ from django.core import mail as django_mail
 from django.conf import settings
 
 from beproud.django.mailer.backends.base import BaseEmailBackend
-from beproud.django.mailer import *
+from beproud.django.mailer import (
+    EmailMessage,
+    send_mail,
+    send_template_mail,
+    mail_managers,
+    mail_admins,
+    mail_managers_template,
+    send_mass_mail,
+)
 
 # Suppress logging
 logging.getLogger("").handlers = [BufferingHandler(0)]
