@@ -1,7 +1,9 @@
-# vim:fileencoding=utf-8
+#:coding=utf-8:
+
 import os
 import time
 import logging
+from StringIO import StringIO
 from logging.handlers import BufferingHandler
 
 from django.test import TestCase as DjangoTestCase
@@ -850,3 +852,49 @@ class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
         except EmailError:
             pass
 
+class AttachmentTestCase(MailTestCase, DjangoTestCase):
+
+    def test_text_attachment(self):
+        message = EmailMessage(attachments=[('test.txt', u"データ", None)]).message()
+
+        self.assertEllipsisMatch(
+            '''Content-Type: multipart/mixed; boundary="..."\n'''
+            '''MIME-Version: 1.0\n'''
+            '''Subject: ...\n'''
+            '''From: ...\n'''
+            '''To: ...\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''...\n''' # Message boundary
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="UTF-8"\n'''
+            '''Content-Transfer-Encoding: base64\n'''
+            '''Content-Disposition: attachment; filename="test.txt"\n'''
+            '''\n'''
+            '''44OH44O844K/\n''' # Attachment Content
+            '''\n'''
+            '''...''', # Message boundary
+            message.as_string())
+
+    def test_binary_attachment(self):
+        message = EmailMessage(attachments=[('test.binary', u"データ".encode("utf8"), None)]).message()
+
+        self.assertEllipsisMatch(
+            '''Content-Type: multipart/mixed; boundary="..."\n'''
+            '''MIME-Version: 1.0\n'''
+            '''Subject: ...\n'''
+            '''From: ...\n'''
+            '''To: ...\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n'''
+            '''\n'''
+            '''...\n''' # Message boundary
+            '''Content-Type: application/octet-stream\n'''
+            '''MIME-Version: 1.0\n'''
+            '''Content-Transfer-Encoding: base64\n'''
+            '''Content-Disposition: attachment; filename="test.binary"\n'''
+            '''\n'''
+            '''44OH44O844K/\n''' # Attachment Content
+            '''...''', # Message boundary
+            message.as_string())

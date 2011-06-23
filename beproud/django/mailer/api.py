@@ -1,9 +1,11 @@
 #:coding=utf-8:
 
+from email import Encoders
 from email.MIMEText import MIMEText
 from email.MIMEMultipart import MIMEMultipart
 from email.Header import Header
 from email.Utils import formatdate, getaddresses, formataddr
+from email.MIMEBase import MIMEBase
 
 from django import VERSION as DJANGO_VERSION
 from django.core import mail as django_mail
