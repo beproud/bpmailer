@@ -3,7 +3,6 @@
 import os
 import time
 import logging
-from StringIO import StringIO
 from logging.handlers import BufferingHandler
 
 from django.test import TestCase as DjangoTestCase
@@ -13,6 +12,7 @@ from django.conf import settings
 from beproud.django.mailer.backends.base import BaseEmailBackend
 from beproud.django.mailer import (
     EmailMessage,
+    EmailMultiAlternatives,
     send_mail,
     send_template_mail,
     mail_managers,
@@ -898,3 +898,107 @@ class AttachmentTestCase(MailTestCase, DjangoTestCase):
             '''44OH44O844K/\n''' # Attachment Content
             '''...''', # Message boundary
             message.as_string())
+
+class HtmlMailTestCase(MailTestCase, DjangoTestCase):
+
+    def test_send_mail_html(self):
+        send_mail(
+           u"件名",
+           u"本文",
+           'example-from@example.net',
+           ['example@example.net'],
+           html=u"<h1>本文</h1>",
+       )
+        self.assertEquals(len(django_mail.outbox), 1)
+
+        email_message = django_mail.outbox[0]
+        self.assertEquals(email_message.body, u'本文')
+        self.assertTrue(isinstance(email_message, EmailMultiAlternatives))
+
+        self.assertTrue((u"<h1>本文</h1>", "text/html") in email_message.alternatives)
+
+        message = django_mail.outbox[0].message()
+        self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
+        self.assertEquals(str(message['To']), 'example@example.net')
+        self.assertEquals(str(message['From']), 'example-from@example.net')
+
+        self.assertEllipsisMatch(
+            '''Content-Type: multipart/alternative; boundary="..."\n'''
+            '''MIME-Version: 1.0\n'''
+            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
+            '''From: example-from@example.net\n'''
+            '''To: example@example.net\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n''' # Message Boundry
+            '''\n'''
+            '''...\n'''
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="UTF-8"\n'''
+            '''Content-Transfer-Encoding: base64\n'''
+            '''\n'''
+            '''5pys5paH\n''' # Text Content
+            '''\n'''
+            '''...\n''' # Message Boundry
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/html; charset="UTF-8"\n'''
+            '''Content-Transfer-Encoding: base64\n'''
+            '''\n'''
+            '''PGgxPuacrOaWhzwvaDE+\n''' # HTML Content
+            '''\n'''
+            '''...''', # Message Boundry
+            message.as_string()
+        )
+
+    def test_html_template_mail(self):
+        send_template_mail(
+            u'mailer/mail.tpl',
+            u'example-from@example.net',
+            [u'example@example.net'],
+            extra_context={
+                'subject': u'件名',
+                'body': u'本文',
+                'html': u"<h1>本文</h1>",
+            },
+            fail_silently=False,
+            html_template_name=u'mailer/html_mail.tpl',
+        )
+
+        self.assertEquals(len(django_mail.outbox), 1)
+
+        email_message = django_mail.outbox[0]
+        self.assertEquals(email_message.body, u'本文\n')
+        self.assertTrue(isinstance(email_message, EmailMultiAlternatives))
+
+        self.assertTrue((u"<h1>本文</h1>\n", "text/html") in email_message.alternatives)
+
+        message = django_mail.outbox[0].message()
+        self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
+        self.assertEquals(str(message['To']), 'example@example.net')
+        self.assertEquals(str(message['From']), 'example-from@example.net')
+
+        self.assertEllipsisMatch(
+            '''Content-Type: multipart/alternative; boundary="..."\n'''
+            '''MIME-Version: 1.0\n'''
+            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
+            '''From: example-from@example.net\n'''
+            '''To: example@example.net\n'''
+            '''Date: ...\n'''
+            '''Message-ID: <...>\n''' # Message Boundry
+            '''\n'''
+            '''...\n'''
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/plain; charset="UTF-8"\n'''
+            '''Content-Transfer-Encoding: base64\n'''
+            '''\n'''
+            '''5pys5paHCg==\n''' # Text Content
+            '''\n'''
+            '''...\n''' # Message Boundry
+            '''MIME-Version: 1.0\n'''
+            '''Content-Type: text/html; charset="UTF-8"\n'''
+            '''Content-Transfer-Encoding: base64\n'''
+            '''\n'''
+            '''PGgxPuacrOaWhzwvaDE+Cg==\n''' # HTML Content
+            '''\n'''
+            '''...''', # Message Boundry
+            message.as_string()
+        )

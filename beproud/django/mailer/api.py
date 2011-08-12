@@ -203,7 +203,40 @@ class EmailMultiAlternatives(EmailMessage):
         return msg
 
 def send_mail(subject, message, from_email, recipient_list,
-              fail_silently=False, auth_user=None, auth_password=None, encoding=None, connection=None):
+              fail_silently=False, auth_user=None, auth_password=None, encoding=None, connection=None,
+              html=None):
+    """
+    Sends an email message.
+
+    Arguments
+    --------------
+
+    * subject           -- The email subject
+    * message           -- The email message body text
+    * from_email        -- The sender. Can be an email address or formatted name and address.
+                           Example: Ian Lewis <ian@example.com>
+                           Example: ian@example.com
+    * recipient_list    -- A list of recipients. This is formatted the same as the from_email.
+
+    Keyword Arguments
+    ----------------------
+    fail_silently       -- A boolean indicating whether errors when sending emails should be
+                           squelched. If True errors are squelched and logged. If False errors
+                           are raised as Exceptions as normal. Default is False.
+    auth_user           -- The username to use when authenticating with the SMTP server.
+                           This argument is ignored if a connection object is provided.
+                           Defaults to the EMAIL_HOST_USER in settings.py
+    auth_password       -- The password to use when authenticating with the SMTP server.
+                           This argument is ignored if a connection object is provided.
+                           Defaults to the EMAIL_HOST_PASSWORD in settings.py
+    encoding            -- The character encoding to use in the email.
+                           Defaults to the EMAIL_CHARSET or DEFAULT_CHARSET in settings.py
+    connection          -- The connection object to use when sending the email as returned
+                           by get_connection()
+    html                -- The html body part of the email. If provided the email is encoded
+                           as a multi-part email with an html part containing the html body.
+                           Useful for sending html emails.
+    """
 
     if settings.DEBUG and hasattr(settings, "EMAIL_ALL_FORWARD"):
         recipient_list = [settings.EMAIL_ALL_FORWARD]
@@ -211,45 +244,101 @@ def send_mail(subject, message, from_email, recipient_list,
 
     connection = connection or get_connection(username=auth_user, password=auth_password,
                                 fail_silently=fail_silently)
-    msg = EmailMessage(
-        subject=subject,
-        body=message,
-        from_email=from_email,
-        to=recipient_list,
-        connection=connection,
-    )
+    if html:
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=message,
+            from_email=from_email,
+            to=recipient_list,
+            connection=connection,
+        )
+        msg.attach_alternative(html, "text/html")
+    else:
+        msg = EmailMessage(
+            subject=subject,
+            body=message,
+            from_email=from_email,
+            to=recipient_list,
+            connection=connection,
+        )
+
     msg.encoding = encoding
     return_val = msg.send()
     log_message(msg, return_val) 
     return return_val
 
+def _render_mail_template(template_name, extra_context={}):
+    """
+    Renders the template and returns the resulting text.
+    """
+    context = getattr(settings, "EMAIL_DEFAULT_CONTEXT", {})
+    context.update(extra_context)
+    return render_to_string(template_name, context)
+
 def render_message(template_name, extra_context={}):
     """
-    Renders an email message from a template and returns a two
+    Renders a text email message from a template and returns a two
     tuple containing the subject and body of the message.
 
     The contents of the EMAIL_DEFAULT_CONTENT setting are
     passed to the template when it is rendered but can be
     overridden.
     """
-    context = getattr(settings, "EMAIL_DEFAULT_CONTEXT", {})
-    context.update(extra_context)
-
-    rendered_mail = render_to_string(template_name, context).replace(u"\r\n",u"\n").replace(u"\r",u"\n").split(u"\n")
+    mail_text = _render_mail_template(template_name, extra_context)
+    rendered_mail = mail_text.replace(u"\r\n",u"\n").replace(u"\r",u"\n").split(u"\n")
     return rendered_mail[0], "\n".join(rendered_mail[1:])
-    
+   
 def send_template_mail(template_name, from_email, recipient_list, extra_context={},
-                       fail_silently=False, auth_user=None, auth_password=None, encoding=None, connection=None):
+                       fail_silently=False, auth_user=None, auth_password=None, encoding=None, connection=None,
+                       html_template_name=None):
     u"""
     Send an email using a django template. The template should be formatted
     so that the first line of the template is the subject. All subsequent lines
-    are used as the body of the email message.
+    are used as the body of the email message. The easiest way to create a template is to 
+    extend the "mail.tpl" template provided with bpmailer and specify the subject and body
+    blocks.
+
+    You can also specify the "mail.tpl" template and add the "subject" and "body" to
+    the extra_context argument to use bpmailer's default template.
+
+    Arguments
+    --------------
+
+    * template_name     -- The name of the Django template to use to render the email.
+    * from_email        -- The sender. Can be an email address or formatted name and address.
+                           Example: Ian Lewis <ian@example.com>
+                           Example: ian@example.com
+    * recipient_list    -- A list of recipients. This is formatted the same as the from_email.
+    * extra_context     -- An dictionary of extra data that is added to the context when
+                           rendering the template.
+
+    Keyword Arguments
+    ----------------------
+    fail_silently       -- A boolean indicating whether errors when sending emails should be
+                           squelched. If True errors are squelched and logged. If False errors
+                           are raised as Exceptions as normal. Default is False.
+    auth_user           -- The username to use when authenticating with the SMTP server.
+                           This argument is ignored if a connection object is provided.
+                           Defaults to the EMAIL_HOST_USER in settings.py
+    auth_password       -- The password to use when authenticating with the SMTP server.
+                           This argument is ignored if a connection object is provided.
+                           Defaults to the EMAIL_HOST_PASSWORD in settings.py
+    encoding            -- The character encoding to use in the email.
+                           Defaults to the EMAIL_CHARSET or DEFAULT_CHARSET in settings.py
+    connection          -- The connection object to use when sending the email as returned
+                           by get_connection()
+    html_template_name  -- The template for the html body part of the email. If provided
+                           the email is encoded as a multi-part email with an html part
+                           containing the html body.  Useful for sending html emails.
     """
     if not isinstance(recipient_list, list) and not isinstance(recipient_list, tuple):
         recipient_list = [recipient_list]
         
+    html = None
     try:
         subject,message = render_message(template_name, extra_context)
+        if html_template_name:
+            html = _render_mail_template(html_template_name, extra_context)
     except Exception:
         log_exception("Mail Error")
         if fail_silently:
@@ -267,6 +356,7 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
         auth_password=auth_password,
         encoding=encoding,
         connection=connection,
+        html=html,
     )
 
 def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
