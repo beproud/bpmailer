@@ -204,7 +204,7 @@ class EmailMultiAlternatives(EmailMessage):
 
 def send_mail(subject, message, from_email, recipient_list,
               fail_silently=False, auth_user=None, auth_password=None, encoding=None, connection=None,
-              html=None):
+              html_message=None):
     """
     Sends an email message.
 
@@ -233,7 +233,7 @@ def send_mail(subject, message, from_email, recipient_list,
                            Defaults to the EMAIL_CHARSET or DEFAULT_CHARSET in settings.py
     connection          -- The connection object to use when sending the email as returned
                            by get_connection()
-    html                -- The html body part of the email. If provided the email is encoded
+    html_message        -- The html body part of the email. If provided the email is encoded
                            as a multi-part email with an html part containing the html body.
                            Useful for sending html emails.
     """
@@ -244,7 +244,7 @@ def send_mail(subject, message, from_email, recipient_list,
 
     connection = connection or get_connection(username=auth_user, password=auth_password,
                                 fail_silently=fail_silently)
-    if html:
+    if html_message:
         msg = EmailMultiAlternatives(
             subject=subject,
             body=message,
@@ -252,7 +252,7 @@ def send_mail(subject, message, from_email, recipient_list,
             to=recipient_list,
             connection=connection,
         )
-        msg.attach_alternative(html, "text/html")
+        msg.attach_alternative(html_message, "text/html")
     else:
         msg = EmailMessage(
             subject=subject,
@@ -334,11 +334,11 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
     if not isinstance(recipient_list, list) and not isinstance(recipient_list, tuple):
         recipient_list = [recipient_list]
         
-    html = None
+    html_message = None
     try:
         subject,message = render_message(template_name, extra_context)
         if html_template_name:
-            html = _render_mail_template(html_template_name, extra_context)
+            html_message = _render_mail_template(html_template_name, extra_context)
     except Exception:
         log_exception("Mail Error")
         if fail_silently:
@@ -356,7 +356,7 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
         auth_password=auth_password,
         encoding=encoding,
         connection=connection,
-        html=html,
+        html_message=html_message,
     )
 
 def send_mass_mail(datatuple, fail_silently=False, auth_user=None,

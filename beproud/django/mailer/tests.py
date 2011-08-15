@@ -907,7 +907,7 @@ class HtmlMailTestCase(MailTestCase, DjangoTestCase):
            u"本文",
            'example-from@example.net',
            ['example@example.net'],
-           html=u"<h1>本文</h1>",
+           html_message=u"<h1>本文</h1>",
        )
         self.assertEquals(len(django_mail.outbox), 1)
 
