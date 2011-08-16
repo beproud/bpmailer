@@ -52,12 +52,6 @@ class MailTestCase(object):
     EMAIL_USE_LOCALTIME = None
     EMAIL_BACKEND = 'beproud.django.mailer.backends.locmem.EmailBackend' 
 
-    def assertEllipsisMatch(self, first, second, msg=None):
-        from doctest import _ellipsis_match
-        if not _ellipsis_match(first, second):
-            raise self.failureException, \
-                (msg or '%r != %r' % (first, second))
-    
     def setUp(self):
         from beproud.django.mailer.models import init_mailer
         from email import charset
@@ -144,18 +138,13 @@ class EncodingTestCaseUTF8(MailTestCase, DjangoTestCase):
         )
         
         message = django_mail.outbox[0].message()
-        self.assertEllipsisMatch(
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="UTF-8"\n'''
-            '''Content-Transfer-Encoding: base64\n'''
-            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
-            '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
-            '''To: =?UTF-8?b?5a6b5YWI?= <example@example.net>\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''5pys5paH\n''',
-            message.as_string())
+        
+        self.assertEqual(str(message['Subject']), "=?UTF-8?b?5Lu25ZCN?=")
+        self.assertEqual(str(message['To']), "=?UTF-8?b?5a6b5YWI?= <example@example.net>")
+        self.assertEqual(str(message['From']), "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
+        self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
+        self.assertEqual(message['Content-Type'], 'text/plain; charset="UTF-8"')
+        self.assertEqual(message.get_payload(), "5pys5paH\n")
 
 class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf-8'
@@ -203,18 +192,13 @@ class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
         )
         
         message = django_mail.outbox[0].message()
-        self.assertEllipsisMatch(
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
-            '''Content-Transfer-Encoding: 7bit\n'''
-            '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
-            '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
-            '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''\x1b$BK\\J8\x1b(B''',
-            message.as_string())
+
+        self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
+        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>")
+        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
+        self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
+        self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
 
 class EmailAllForwardTestCase(MailTestCase, DjangoTestCase):
     DEBUG = True
@@ -313,18 +297,13 @@ class DjangoMailISO2022JPTestCase(MailTestCase, DjangoTestCase):
         )
         
         message = django_mail.outbox[0].message()
-        self.assertEllipsisMatch(
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
-            '''Content-Transfer-Encoding: 7bit\n'''
-            '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
-            '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
-            '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''\x1b$BK\\J8\x1b(B''',
-            message.as_string())
+
+        self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
+        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>")
+        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
+        self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
+        self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
 
 class DjangoMailUTF8TestCase(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf8'
@@ -338,18 +317,13 @@ class DjangoMailUTF8TestCase(MailTestCase, DjangoTestCase):
         )
         
         message = django_mail.outbox[0].message()
-        self.assertEllipsisMatch(
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="UTF-8"\n'''
-            '''Content-Transfer-Encoding: base64\n'''
-            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
-            '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
-            '''To: =?UTF-8?b?5a6b5YWI?= <example@example.net>\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''5pys5paH\n''',
-            message.as_string())
+
+        self.assertEqual(str(message['Subject']), "=?UTF-8?b?5Lu25ZCN?=")
+        self.assertEqual(str(message['To']), "=?UTF-8?b?5a6b5YWI?= <example@example.net>")
+        self.assertEqual(str(message['From']), "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
+        self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
+        self.assertEqual(message['Content-Type'], 'text/plain; charset="UTF-8"')
+        self.assertEqual(message.get_payload(), "5pys5paH\n")
 
 class SignalTest(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf8'
@@ -373,18 +347,13 @@ class SignalTest(MailTestCase, DjangoTestCase):
         )
 
         message = django_mail.outbox[0].message()
-        self.assertEllipsisMatch(
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
-            '''Content-Transfer-Encoding: 7bit\n'''
-            '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
-            '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
-            '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''\x1b$BK\\J8!A%F%9%H\x1b(B''',
-            message.as_string())
+
+        self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
+        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>")
+        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
+        self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
+        self.assertEqual(message.get_payload(), "\x1b$BK\\J8!A%F%9%H\x1b(B")
 
     def test_post_send_singnal(self):
         from beproud.django.mailer.signals import mail_post_send
@@ -419,18 +388,13 @@ class MassMailTest(MailTestCase, DjangoTestCase):
 
         for i in range(10):
             message = django_mail.outbox[i].message()
-            self.assertEllipsisMatch((
-                '''MIME-Version: 1.0\n'''
-                '''Content-Type: text/plain; charset="UTF-8"\n'''
-                '''Content-Transfer-Encoding: base64\n'''
-                '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
-                '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
-                '''To: =?UTF-8?b?5a6b5YWI?= <example%s@example.net>\n'''
-                '''Date: ...\n'''
-                '''Message-ID: <...>\n'''
-                '''\n'''
-                '''5pys5paH\n''') % i,
-                message.as_string())
+
+            self.assertEqual(str(message['Subject']), "=?UTF-8?b?5Lu25ZCN?=")
+            self.assertEqual(str(message['To']), "=?UTF-8?b?5a6b5YWI?= <example%s@example.net>" % i)
+            self.assertEqual(str(message['From']), "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
+            self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
+            self.assertEqual(message['Content-Type'], 'text/plain; charset="UTF-8"')
+            self.assertEqual(message.get_payload(), "5pys5paH\n")
 
     def test_mass_mail_encoding(self):
         send_mass_mail(((
@@ -442,18 +406,13 @@ class MassMailTest(MailTestCase, DjangoTestCase):
 
         for i in range(10):
             message = django_mail.outbox[i].message()
-            self.assertEllipsisMatch((
-                '''MIME-Version: 1.0\n'''
-                '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
-                '''Content-Transfer-Encoding: 7bit\n'''
-                '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
-                '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
-                '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example%s@example.net>\n'''
-                '''Date: ...\n'''
-                '''Message-ID: <...>\n'''
-                '''\n'''
-                '''\x1b$BK\\J8\x1b(B''') % i,
-                message.as_string())
+
+            self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
+            self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example%s@example.net>" % i)
+            self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+            self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
+            self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
+            self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
 
     def test_mass_mail_encoding_inline(self):
         send_mass_mail((
@@ -480,46 +439,29 @@ class MassMailTest(MailTestCase, DjangoTestCase):
         ))
 
         message = django_mail.outbox[0].message()
-        self.assertEllipsisMatch(
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
-            '''Content-Transfer-Encoding: 7bit\n'''
-            '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
-            '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
-            '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example0@example.net>\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''\x1b$BK\\J8\x1b(B''',
-            message.as_string())
+
+        self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
+        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example0@example.net>")
+        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
+        self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
+        self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
 
         message = django_mail.outbox[1].message()
-        self.assertEllipsisMatch(
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="UTF-8"\n'''
-            '''Content-Transfer-Encoding: base64\n'''
-            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
-            '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
-            '''To: =?UTF-8?b?5a6b5YWI?= <example1@example.net>\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''5pys5paH\n''',
-            message.as_string())
+        self.assertEqual(str(message['Subject']), "=?UTF-8?b?5Lu25ZCN?=")
+        self.assertEqual(str(message['To']), "=?UTF-8?b?5a6b5YWI?= <example1@example.net>")
+        self.assertEqual(str(message['From']), "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
+        self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
+        self.assertEqual(message['Content-Type'], 'text/plain; charset="UTF-8"')
+        self.assertEqual(message.get_payload(), "5pys5paH\n")
 
         message = django_mail.outbox[2].message()
-        self.assertEllipsisMatch(
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
-            '''Content-Transfer-Encoding: 7bit\n'''
-            '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
-            '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
-            '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example2@example.net>\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''\x1b$BK\\J8\x1b(B''',
-            message.as_string())
+        self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
+        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example2@example.net>")
+        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
+        self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
+        self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
 
     def test_mass_mail_encoding_inline2(self):
         send_mass_mail((
@@ -546,47 +488,28 @@ class MassMailTest(MailTestCase, DjangoTestCase):
         ), encoding='cp932')
 
         message = django_mail.outbox[0].message()
-        self.assertEllipsisMatch(
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
-            '''Content-Transfer-Encoding: 7bit\n'''
-            '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
-            '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
-            '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example0@example.net>\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''\x1b$BK\\J8\x1b(B''',
-            message.as_string())
+        self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
+        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example0@example.net>")
+        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
+        self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
+        self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
 
         message = django_mail.outbox[1].message()
-        self.assertEllipsisMatch(
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="SHIFT-JIS"\n'''
-            '''Content-Transfer-Encoding: 8bit\n'''
-            '''Subject: =?SHIFT-JIS?b?jI+WvA==?=\n'''
-            '''From: =?SHIFT-JIS?b?jbePb5Bs?= <example-from@example.net>\n'''
-            '''To: =?SHIFT-JIS?b?iLaQ5g==?= <example1@example.net>\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''\x96{\x95\xb6''',
-            message.as_string())
+        self.assertEqual(str(message['Subject']), "=?SHIFT-JIS?b?jI+WvA==?=")
+        self.assertEqual(str(message['To']), "=?SHIFT-JIS?b?iLaQ5g==?= <example1@example.net>")
+        self.assertEqual(str(message['From']), "=?SHIFT-JIS?b?jbePb5Bs?= <example-from@example.net>")
+        self.assertEqual(message['Content-Transfer-Encoding'], '8bit')
+        self.assertEqual(message['Content-Type'], 'text/plain; charset="SHIFT-JIS"')
+        self.assertEqual(message.get_payload(), "\x96{\x95\xb6")
 
         message = django_mail.outbox[2].message()
-        self.assertEllipsisMatch(
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="ISO-2022-JP"\n'''
-            '''Content-Transfer-Encoding: 7bit\n'''
-            '''Subject: =?ISO-2022-JP?b?GyRCN29MPhsoQg==?=\n'''
-            '''From: =?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>\n'''
-            '''To: =?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example2@example.net>\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''\x1b$BK\\J8\x1b(B''',
-            message.as_string())
-
+        self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
+        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example2@example.net>")
+        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
+        self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
+        self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
 
     def test_mass_mail_pre_send(self):
         from beproud.django.mailer.signals import mail_pre_send
@@ -676,19 +599,13 @@ class MassMailTest(MailTestCase, DjangoTestCase):
 
         for i in range(10):
             message = django_mail.outbox[i].message()
-            self.assertEllipsisMatch((
-                '''MIME-Version: 1.0\n'''
-                '''Content-Type: text/plain; charset="UTF-8"\n'''
-                '''Content-Transfer-Encoding: base64\n'''
-                '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
-                '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
-                '''To: =?UTF-8?b?5a6b5YWI?= <example%s@example.net>\n'''
-                '''Date: ...\n'''
-                '''Message-ID: <...>\n'''
-                '''\n'''
-                '''5pys5paH\n''') % i,
-                message.as_string())
 
+            self.assertEqual(str(message['Subject']), "=?UTF-8?b?5Lu25ZCN?=")
+            self.assertEqual(str(message['To']), "=?UTF-8?b?5a6b5YWI?= <example%s@example.net>" % i)
+            self.assertEqual(str(message['From']), "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
+            self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
+            self.assertEqual(message['Content-Type'], 'text/plain; charset="UTF-8"')
+            self.assertEqual(message.get_payload(), "5pys5paH\n")
 
 class UTCTimeTestCase(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf-8'
@@ -704,18 +621,7 @@ class UTCTimeTestCase(MailTestCase, DjangoTestCase):
         )
 
         message = django_mail.outbox[0].message()
-        self.assertEllipsisMatch(
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="UTF-8"\n'''
-            '''Content-Transfer-Encoding: base64\n'''
-            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
-            '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
-            '''To: =?UTF-8?b?5a6b5YWI?= <example@example.net>\n'''
-            '''Date: ...-0000\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''5pys5paH\n''',
-            message.as_string())
+        self.assertTrue(message['Date'].endswith("-0000"))
 
 class LocalTimeTestCase(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf-8'
@@ -731,18 +637,7 @@ class LocalTimeTestCase(MailTestCase, DjangoTestCase):
         )
 
         message = django_mail.outbox[0].message()
-        self.assertEllipsisMatch(
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="UTF-8"\n'''
-            '''Content-Transfer-Encoding: base64\n'''
-            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
-            '''From: =?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>\n'''
-            '''To: =?UTF-8?b?5a6b5YWI?= <example@example.net>\n'''
-            '''Date: ...+0900\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''5pys5paH\n''',
-            message.as_string())
+        self.assertTrue(message['Date'].endswith("+0900"))
 
 class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
     EMAIL_BACKEND='beproud.django.mailer.tests.ErrorEmailBackend'
@@ -857,47 +752,26 @@ class AttachmentTestCase(MailTestCase, DjangoTestCase):
     def test_text_attachment(self):
         message = EmailMessage(attachments=[('test.txt', u"データ", None)]).message()
 
-        self.assertEllipsisMatch(
-            '''Content-Type: multipart/mixed; boundary="..."\n'''
-            '''MIME-Version: 1.0\n'''
-            '''Subject: ...\n'''
-            '''From: ...\n'''
-            '''To: ...\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''...\n''' # Message boundary
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="UTF-8"\n'''
-            '''Content-Transfer-Encoding: base64\n'''
-            '''Content-Disposition: attachment; filename="test.txt"\n'''
-            '''\n'''
-            '''44OH44O844K/\n''' # Attachment Content
-            '''\n'''
-            '''...''', # Message boundary
-            message.as_string())
+        payloads = message.get_payload()
+
+        # 添付ファイルのペイロード
+        self.assertEquals(len(payloads), 1)
+        self.assertEquals(payloads[0]['Content-Transfer-Encoding'], 'base64')
+        self.assertEquals(payloads[0]['Content-Type'], 'text/plain; charset="UTF-8"')
+        self.assertEquals(payloads[0]['Content-Disposition'], 'attachment; filename="test.txt"')
+        self.assertEquals(payloads[0].get_payload(), "44OH44O844K/\n")
 
     def test_binary_attachment(self):
         message = EmailMessage(attachments=[('test.binary', u"データ".encode("utf8"), None)]).message()
 
-        self.assertEllipsisMatch(
-            '''Content-Type: multipart/mixed; boundary="..."\n'''
-            '''MIME-Version: 1.0\n'''
-            '''Subject: ...\n'''
-            '''From: ...\n'''
-            '''To: ...\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n'''
-            '''\n'''
-            '''...\n''' # Message boundary
-            '''Content-Type: application/octet-stream\n'''
-            '''MIME-Version: 1.0\n'''
-            '''Content-Transfer-Encoding: base64\n'''
-            '''Content-Disposition: attachment; filename="test.binary"\n'''
-            '''\n'''
-            '''44OH44O844K/\n''' # Attachment Content
-            '''...''', # Message boundary
-            message.as_string())
+        payloads = message.get_payload()
+
+        # 添付ファイルのペイロード
+        self.assertEquals(len(payloads), 1)
+        self.assertEquals(payloads[0]['Content-Transfer-Encoding'], 'base64')
+        self.assertEquals(payloads[0]['Content-Type'], 'application/octet-stream')
+        self.assertEquals(payloads[0]['Content-Disposition'], 'attachment; filename="test.binary"')
+        self.assertEquals(payloads[0].get_payload(), "44OH44O844K/")
 
 class HtmlMailTestCase(MailTestCase, DjangoTestCase):
 
@@ -922,32 +796,16 @@ class HtmlMailTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['To']), 'example@example.net')
         self.assertEquals(str(message['From']), 'example-from@example.net')
 
-        self.assertEllipsisMatch(
-            '''Content-Type: multipart/alternative; boundary="..."\n'''
-            '''MIME-Version: 1.0\n'''
-            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
-            '''From: example-from@example.net\n'''
-            '''To: example@example.net\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n''' # Message Boundry
-            '''\n'''
-            '''...\n'''
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="UTF-8"\n'''
-            '''Content-Transfer-Encoding: base64\n'''
-            '''\n'''
-            '''5pys5paH\n''' # Text Content
-            '''\n'''
-            '''...\n''' # Message Boundry
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/html; charset="UTF-8"\n'''
-            '''Content-Transfer-Encoding: base64\n'''
-            '''\n'''
-            '''PGgxPuacrOaWhzwvaDE+\n''' # HTML Content
-            '''\n'''
-            '''...''', # Message Boundry
-            message.as_string()
-        )
+        payloads = message.get_payload()
+
+        # text + html ペイロード
+        self.assertEquals(len(payloads), 2)
+        self.assertEquals(payloads[0]['Content-Transfer-Encoding'], 'base64')
+        self.assertEquals(payloads[0]['Content-Type'], 'text/plain; charset="UTF-8"')
+        self.assertEquals(payloads[0].get_payload(), "5pys5paH\n")
+        self.assertEquals(payloads[1]['Content-Transfer-Encoding'], 'base64')
+        self.assertEquals(payloads[1]['Content-Type'], 'text/html; charset="UTF-8"')
+        self.assertEquals(payloads[1].get_payload(), "PGgxPuacrOaWhzwvaDE+\n")
 
     def test_html_template_mail(self):
         send_template_mail(
@@ -976,29 +834,14 @@ class HtmlMailTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['To']), 'example@example.net')
         self.assertEquals(str(message['From']), 'example-from@example.net')
 
-        self.assertEllipsisMatch(
-            '''Content-Type: multipart/alternative; boundary="..."\n'''
-            '''MIME-Version: 1.0\n'''
-            '''Subject: =?UTF-8?b?5Lu25ZCN?=\n'''
-            '''From: example-from@example.net\n'''
-            '''To: example@example.net\n'''
-            '''Date: ...\n'''
-            '''Message-ID: <...>\n''' # Message Boundry
-            '''\n'''
-            '''...\n'''
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/plain; charset="UTF-8"\n'''
-            '''Content-Transfer-Encoding: base64\n'''
-            '''\n'''
-            '''5pys5paHCg==\n''' # Text Content
-            '''\n'''
-            '''...\n''' # Message Boundry
-            '''MIME-Version: 1.0\n'''
-            '''Content-Type: text/html; charset="UTF-8"\n'''
-            '''Content-Transfer-Encoding: base64\n'''
-            '''\n'''
-            '''PGgxPuacrOaWhzwvaDE+Cg==\n''' # HTML Content
-            '''\n'''
-            '''...''', # Message Boundry
-            message.as_string()
-        )
+
+        payloads = message.get_payload()
+
+        # text + html ペイロード
+        self.assertEquals(len(payloads), 2)
+        self.assertEquals(payloads[0]['Content-Transfer-Encoding'], 'base64')
+        self.assertEquals(payloads[0]['Content-Type'], 'text/plain; charset="UTF-8"')
+        self.assertEquals(payloads[0].get_payload(), "5pys5paHCg==\n")
+        self.assertEquals(payloads[1]['Content-Transfer-Encoding'], 'base64')
+        self.assertEquals(payloads[1]['Content-Type'], 'text/html; charset="UTF-8"')
+        self.assertEquals(payloads[1].get_payload(), "PGgxPuacrOaWhzwvaDE+Cg==\n")
