@@ -27,7 +27,7 @@ send_mail()
 
 send_mailはこう定義されています。 `Django 1.1 send_mail()`_ と同じAPIですが、 ``encoding`` という文字コードを指定できる引数が追加されてます。 ``encoding`` を指定しない場合、 :ref:`EMAIL_CHARSET <setting-email-charset>` という設定を使います。 :ref:`EMAIL_CHARSET <setting-email-charset>` が設定してない場合は `DEFAULT_CHARSET`_ を対かます。
 
-.. function:: send_mail(subject, message, from_email, recipient_list, fail_silently=False, auth_user=None, auth_password=None, encoding=None)
+.. function:: send_mail(subject, message, from_email, recipient_list, fail_silently=False, auth_user=None, auth_password=None, encoding=None, connection=None, html_message=None)
 
 send_mailの呼び出し方は、Djangoと一緒です。
 
@@ -58,7 +58,7 @@ send_template_mail()
 
 send_template_mailはこう定義されています。
 
-.. function:: send_template_mail(template_name, from_email, recipient_list, extra_context={}, fail_silently=True, auth_user=None, auth_password=None, encoding=None)
+.. function:: send_template_mail(template_name, from_email, recipient_list, extra_context={}, fail_silently=True, auth_user=None, auth_password=None, encoding=None, connection=None, html_template_name=None)
 
 .. code-block:: python
     
@@ -67,7 +67,7 @@ send_template_mailはこう定義されています。
     send_template_mail('mail/example.txt' 'from@example.com', ['to@example.com'],
         extra_context={"user": user_obj}, fail_silently=False, encoding="iso-2022-jp-2")
 
-テンプレートの作成
+テキストテンプレートの作成
 ++++++++++++++++++++++++++++++++++++
 
 メールのテンプレートは普通のテンプレートの違う特徴が一つあります。テンプレートの一行目はメールの件名になります::
@@ -104,6 +104,42 @@ send_template_mailはこう定義されています。
     宜しくお願いします。{% endblock %}
 
 このようにテンプレートを書きますと、HTML自動エスケープ、改行等、あまり気にせずにメールテンプレートを書けます。
+
+HTMLテンプレート作成
+------------------------------
+
+``html_template_name`` を ``send_template_mail()`` に指定すると、bpmailer は マルチパートメールを作成し、
+HTMLのパートを追加します。
+
+``mailer/html_mail.tpl`` というテンプレートを用意しています。 直接使う場合は、 ``html`` のコンテキスト変数を
+テンプレートに渡せば、テンプレートに追加できます。
+
+.. code-block:: python
+
+    from mailer import send_template_mail
+
+    send_template_mail('mailer/html_mail.tpl' 'from@example.com', ['to@example.com'],
+        extra_context={"subject": u"これは\n件名", "body": u"これは本文",
+                       "html": "<p>これは<strong>HTML</strong>本文</p>"},
+        fail_silently=False, encoding="iso-2022-jp-2")
+
+HTMLテンプレートはテキスト文章のテンプレートの同じように作成しますが、HTMLテンプレートの場合はメールの件名が含まれません。
+件名はテキスト用のテンプレートの件名を使います。HTML用のベーステンプレートも用意していますので、 ``mailer/html_mail.tpl``
+を継承すれば、HTML メールのテンプレートを簡単に作成できます::
+
+    {% extends "mailer/html_mail.tpl" %}
+
+    {% block body %}
+    <div>
+      <p><strong>{{ user.username }}様</strong>、</p>
+
+      <p>会員登録、<em>誠にありがとうございました</em>。</p>
+
+      <p>宜しくお願いします。</p>
+    </div> 
+    {% endblock %}
+
+"mailer/html_mail.tpl" を使えば、HTML自動エスケープを気にせずにメールテンプレートを書けます。
 
 .. _`Django 1.1 send_mail()`: http://djangoproject.jp/doc/ja/1.0/topics/email.html#send-mail
 .. _`DEFAULT_CHARSET`: http://djangoproject.jp/doc/ja/1.0/ref/settings.html#default-charset
