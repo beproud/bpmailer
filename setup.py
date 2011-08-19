@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
  
 setup (
     name='bpmailer',
-    version='0.1',
+    version='0.2',
     description='Mailing utility for Django',
     author='K.K. BeProud',
     author_email='ianmlewis@beproud.jp',
