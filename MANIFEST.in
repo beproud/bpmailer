@@ -1,0 +1,1 @@
+recursive-include beproud/django/mailer/templates *
