@@ -1,22 +1,17 @@
 #:coding=utf-8:
 
 from email import Encoders
-from email.MIMEText import MIMEText
-from email.MIMEMultipart import MIMEMultipart
-from email.Header import Header
-from email.Utils import formatdate, getaddresses, formataddr
+from email.Utils import formatdate
 from email.MIMEBase import MIMEBase
 
-from django import VERSION as DJANGO_VERSION
 from django.core import mail as django_mail
 from django.utils.encoding import smart_str
-from django.core.exceptions import ImproperlyConfigured
 from django.template.loader import render_to_string
 from django.conf import settings
 
 import logging
 
-__version__ = '0.2'
+__version__ = '0.3'
 
 __all__ = (
     'get_connection',
@@ -33,90 +28,23 @@ __all__ = (
     'EmailMultiAlternatives',
     'SafeMIMEText',
     'SafeMIMEMultipart',
-    'SMTPConnection',
     'BadHeaderError',
 )
 
-logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
-
-SMTPConnection = django_mail.SMTPConnection
+SafeMIMEText = django_mail.SafeMIMEText
+SafeMIMEMultipart = django_mail.SafeMIMEMultipart
 BadHeaderError = django_mail.BadHeaderError
+get_connection = django_mail.get_connection
+forbid_multi_line_headers = django_mail.forbid_multi_line_headers
 make_msgid = django_mail.make_msgid
 
-if DJANGO_VERSION > (1,2):
-    from django.core.mail import (
-        SafeMIMEText, SafeMIMEMultipart,
-        get_connection, forbid_multi_line_headers,
-    )
-else:
-    from django.utils.encoding import force_unicode
+# Django 1.4 では、SMTPConnectionはもうないので、
+# なかったらツルーする
+if hasattr(django_mail, 'SMTPConnection'):
+    SMTPConnection = django_mail.SMTPConnection
+    __all__ = __all__ + ('SMTPConnection',)
 
-    def get_connection(backend=None, fail_silently=False, **kwds):
-        """Load an e-mail backend and return an instance of it.
-
-        If backend is None (default) settings.EMAIL_BACKEND is used.
-
-        Both fail_silently and other keyword arguments are used in the
-        constructor of the backend.
-        """
-        from django.utils.importlib import import_module
-
-        path = backend or getattr(settings, 'EMAIL_BACKEND', 'beproud.django.mailer.backends.smtp.EmailBackend')
-        try:
-            mod_name, klass_name = path.rsplit('.', 1)
-            mod = import_module(mod_name)
-        except ImportError, e:
-            raise ImproperlyConfigured(('Error importing email backend module %s: "%s"'
-                                        % (mod_name, e)))
-        try:
-            klass = getattr(mod, klass_name)
-        except AttributeError:
-            raise ImproperlyConfigured(('Module "%s" does not define a '
-                                        '"%s" class' % (mod_name, klass_name)))
-        return klass(fail_silently=fail_silently, **kwds)
- 
-    def forbid_multi_line_headers(name, val, encoding):
-        """Forbids multi-line headers, to prevent header injection."""
-        encoding = encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
-        val = force_unicode(val)
-        if '\n' in val or '\r' in val:
-            raise BadHeaderError("Header values can't contain newlines (got %r for header %r)" % (val, name))
-        try:
-            val = val.encode('ascii')
-        except UnicodeEncodeError:
-            if name.lower() in ('to', 'from', 'cc'):
-                result = []
-                for nm, addr in getaddresses((val,)):
-                    nm = str(Header(nm.encode(encoding), encoding))
-                    result.append(formataddr((nm, str(addr))))
-                val = ', '.join(result)
-            else:
-                val = Header(val.encode(encoding), encoding)
-        else:
-            if name.lower() == 'subject':
-                val = Header(val)
-        return name, val
-
-    class SafeMIMEText(MIMEText):
-        
-        def __init__(self, text, subtype, charset):
-            self.encoding = charset
-            MIMEText.__init__(self, text, subtype, charset)
-        
-        def __setitem__(self, name, val):    
-            name, val = forbid_multi_line_headers(name, val, self.encoding)
-            MIMEText.__setitem__(self, name, val)
-
-    class SafeMIMEMultipart(MIMEMultipart):
-        
-        def __init__(self, _subtype='mixed', boundary=None, _subparts=None, encoding=None, **_params):
-            self.encoding = encoding
-            MIMEMultipart.__init__(self, _subtype, boundary, _subparts, **_params)
-            
-        def __setitem__(self, name, val):
-            name, val = forbid_multi_line_headers(name, val, self.encoding)
-            MIMEMultipart.__setitem__(self, name, val)
-
+logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
 
 class EmailMessage(django_mail.EmailMessage):
     def get_connection(self, fail_silently=False):

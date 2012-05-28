@@ -8,15 +8,12 @@ syntax: glob
 *.pyc
 *.swp
 *.sqlite
+.tox
 build
-parts
+dist
 eggs
 site_media
 develop-eggs
-bin/buildout
-bin/python
-bin/test
-.installed.cfg
 *-log.txt
 *.egg-info
 docs/ja/build

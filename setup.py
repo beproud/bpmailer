@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
  
 setup (
     name='bpmailer',
-    version='0.2',
+    version='0.3',
     description='Mailing utility for Django',
     author='K.K. BeProud',
     author_email='ianmlewis@beproud.jp',
@@ -19,10 +19,10 @@ setup (
       'Programming Language :: Python',
       'Topic :: Software Development :: Libraries :: Python Modules',
     ],
+    include_package_data=True,
     packages=find_packages(),
-    namespace_packages=[
-        'beproud',
-        'beproud.django',
-    ],
+    namespace_packages=['beproud', 'beproud.django'],
+    install_requires=['Django>=1.2'],
     test_suite='tests.main',
+    zip_safe=False,
 )

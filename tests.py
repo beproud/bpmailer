@@ -1,7 +1,5 @@
 import os
 import sys
-import unittest
-import doctest
 import django
 
 def main():
@@ -16,13 +14,18 @@ def main():
     os.environ["DJANGO_SETTINGS_MODULE"] = "django.conf.global_settings"
     from django.conf import global_settings
 
+    global_settings.SECRET_KEY = "SECRET"
     global_settings.INSTALLED_APPS = (
         'django.contrib.auth',
         'django.contrib.contenttypes',
         'beproud.django.mailer',
     )
-    global_settings.DATABASE_ENGINE = "sqlite3"
-    global_settings.DATABASE_NAME = ":memory:"
+    global_settings.DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
+    }
 
     from django.test.utils import get_runner
     test_runner = get_runner(global_settings)
