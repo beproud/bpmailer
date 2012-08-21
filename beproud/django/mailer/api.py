@@ -11,7 +11,7 @@ from django.conf import settings
 
 import logging
 
-__version__ = '0.3'
+__version__ = '0.31'
 
 __all__ = (
     'get_connection',
