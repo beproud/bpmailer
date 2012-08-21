@@ -47,10 +47,36 @@ if hasattr(django_mail, 'SMTPConnection'):
 logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
 
 class EmailMessage(django_mail.EmailMessage):
+    # Django 1.2 の場合の cc に対応
+    def __init__(self, subject='', body='', from_email=None, to=None, bcc=None,
+                 connection=None, attachments=None, headers=None, cc=None):
+        super(EmailMessage, self).__init__(
+            subject=subject,
+            body=body,
+            from_email=from_email,
+            to=to,
+            bcc=bcc,
+            connection=connection,
+            attachments=attachments,
+            headers=headers,
+        )
+        if cc:
+            assert not isinstance(cc, basestring), '"cc" argument must be a list or tuple'
+            self.cc = list(cc)
+        else:
+            self.cc = []
+
     def get_connection(self, fail_silently=False):
         if not self.connection:
             self.connection = get_connection(fail_silently=fail_silently)
         return self.connection
+
+    def recipients(self):
+        """
+        Returns a list of all recipients of the email (includes direct
+        addressees as well as Cc and Bcc entries).
+        """
+        return self.to + self.cc + self.bcc
 
     def message(self):
         encoding = self.encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
@@ -60,6 +86,8 @@ class EmailMessage(django_mail.EmailMessage):
         msg['Subject'] = self.subject
         msg['From'] = self.extra_headers.get('From', self.from_email)
         msg['To'] = ', '.join(self.to)
+        if self.cc:
+            msg['Cc'] = ', '.join(self.cc)
 
         # Email header names are case-insensitive (RFC 2045), so we have to
         # accommodate that when doing comparisons.
@@ -98,7 +126,8 @@ class EmailMultiAlternatives(EmailMessage):
     alternative_subtype = 'alternative'
 
     def __init__(self, subject='', body='', from_email=None, to=None, bcc=None,
-            connection=None, attachments=None, headers=None, alternatives=None):
+            connection=None, attachments=None, headers=None, alternatives=None,
+            cc=None):
         """
         Initialize a single email message (which can be sent to multiple
         recipients).
@@ -107,7 +136,7 @@ class EmailMultiAlternatives(EmailMessage):
         bytestrings). The SafeMIMEText class will handle any necessary encoding
         conversions.
         """
-        super(EmailMultiAlternatives, self).__init__(subject, body, from_email, to, bcc, connection, attachments, headers)
+        super(EmailMultiAlternatives, self).__init__(subject, body, from_email, to, bcc, connection, attachments, headers, cc)
         self.alternatives=alternatives or []
 
     def attach_alternative(self, content, mimetype):
@@ -132,7 +161,7 @@ class EmailMultiAlternatives(EmailMessage):
 
 def send_mail(subject, message, from_email, recipient_list,
               fail_silently=False, auth_user=None, auth_password=None, encoding=None, connection=None,
-              html_message=None):
+              html_message=None, cc=None, bcc=None):
     """
     Sends an email message.
 
@@ -164,6 +193,8 @@ def send_mail(subject, message, from_email, recipient_list,
     html_message        -- The html body part of the email. If provided the email is encoded
                            as a multi-part email with an html part containing the html body.
                            Useful for sending html emails.
+    cc                  -- The cc email recipient list.
+    bcc                 -- The bcc recipient list.
     """
 
     if settings.DEBUG and hasattr(settings, "EMAIL_ALL_FORWARD"):
@@ -178,6 +209,8 @@ def send_mail(subject, message, from_email, recipient_list,
             body=message,
             from_email=from_email,
             to=recipient_list,
+            cc=cc,
+            bcc=bcc,
             connection=connection,
         )
         msg.attach_alternative(html_message, "text/html")
@@ -187,6 +220,8 @@ def send_mail(subject, message, from_email, recipient_list,
             body=message,
             from_email=from_email,
             to=recipient_list,
+            cc=cc,
+            bcc=bcc,
             connection=connection,
         )
 
@@ -218,7 +253,7 @@ def render_message(template_name, extra_context={}):
    
 def send_template_mail(template_name, from_email, recipient_list, extra_context={},
                        fail_silently=False, auth_user=None, auth_password=None, encoding=None, connection=None,
-                       html_template_name=None):
+                       html_template_name=None, cc=None, bcc=None):
     u"""
     Send an email using a django template. The template should be formatted
     so that the first line of the template is the subject. All subsequent lines
@@ -258,6 +293,8 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
     html_template_name  -- The template for the html body part of the email. If provided
                            the email is encoded as a multi-part email with an html part
                            containing the html body.  Useful for sending html emails.
+    cc                  -- The cc email recipient list.
+    bcc                 -- The bcc recipient list.
     """
     if not isinstance(recipient_list, list) and not isinstance(recipient_list, tuple):
         recipient_list = [recipient_list]
@@ -278,6 +315,8 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
         subject=subject,
         message=message,
         recipient_list=recipient_list,
+        cc=cc,
+        bcc=bcc,
         from_email=from_email,
         fail_silently=fail_silently,
         auth_user=auth_user,

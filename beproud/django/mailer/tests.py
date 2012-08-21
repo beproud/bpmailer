@@ -24,6 +24,23 @@ from beproud.django.mailer import (
 # Suppress logging
 logging.getLogger("").handlers = [BufferingHandler(0)]
 
+__all__ = (
+    'EncodingTestCaseUTF8',
+    'EncodingTestCaseISO2022JP',
+    'EmailAllForwardTestCase',
+    'EmailAllForwardTestCase2',
+    'TemplateTestCase',
+    'DjangoMailISO2022JPTestCase',
+    'DjangoMailUTF8TestCase',
+    'SignalTest',
+    'MassMailTest',
+    'UTCTimeTestCase',
+    'LocalTimeTestCase',
+    'FailSilentlyTestCase',
+    'AttachmentTestCase',
+    'HtmlMailTestCase',
+)
+
 class EmailError(Exception):
     pass
 
@@ -145,6 +162,41 @@ class EncodingTestCaseUTF8(MailTestCase, DjangoTestCase):
         self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="UTF-8"')
         self.assertEqual(message.get_payload(), "5pys5paH\n")
+
+    def test_cc(self):
+        send_mail(
+            u'件名',
+            u'本文',
+            'example-from@example.net',
+            ['example@example.net'],
+            cc=['cc@example.net'],
+       )
+        self.assertEquals(len(django_mail.outbox), 1)
+        
+        message = django_mail.outbox[0].message() 
+        self.assertEquals(str(message['To']), 'example@example.net')
+        self.assertEquals(str(message['Cc']), 'cc@example.net')
+        self.assertEquals(str(message['From']), 'example-from@example.net')
+
+    def test_bcc(self):
+        send_mail(
+            u'件名',
+            u'本文',
+            'example-from@example.net',
+            ['example@example.net'],
+            bcc=['bcc@example.net'],
+       )
+        self.assertEquals(len(django_mail.outbox), 1)
+
+        message = django_mail.outbox[0].message() 
+
+        self.assertEquals(str(message['To']), 'example@example.net')
+        self.assertEquals(str(message['From']), 'example-from@example.net')
+
+        # Bcc is not included in email headers
+        self.assertEquals(message['Bcc'], None)
+
+        self.assertTrue(u'bcc@example.net' in django_mail.outbox[0].bcc)
 
 class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf-8'
@@ -284,6 +336,54 @@ class TemplateTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['Subject']), '=?UTF-8?b?44GT44KM44Gv5pS56KGM44Gu44GC44KL5Lu25ZCN?=')
         self.assertEquals(str(message['To']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
         self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+
+    def test_cc(self):
+        send_template_mail(
+            u'mailer/mail.tpl',
+            u'差出人 <example-from@example.net>',
+            [u'差出人 <example-from@example.net>'],
+            cc=[u'宛先 <example@example.net>'],
+            extra_context={
+                'subject': u'これは\r改行\nの\nある\r\n件名',
+                'body': u'本文',
+            },
+            fail_silently=False,
+        )
+
+        self.assertEquals(len(django_mail.outbox), 1)
+
+        mail_message = django_mail.outbox[0]
+
+        message = mail_message.message()
+        self.assertEquals(str(message['To']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+        self.assertEquals(str(message['Cc']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
+        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+
+    def test_bcc(self):
+        send_template_mail(
+            u'mailer/mail.tpl',
+            u'差出人 <example-from@example.net>',
+            [u'差出人 <example-from@example.net>'],
+            bcc=[u'宛先 <example@example.net>'],
+            extra_context={
+                'subject': u'これは\r改行\nの\nある\r\n件名',
+                'body': u'本文',
+            },
+            fail_silently=False,
+        )
+
+        self.assertEquals(len(django_mail.outbox), 1)
+
+        mail_message = django_mail.outbox[0]
+
+        message = mail_message.message()
+        self.assertEquals(str(message['To']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+
+        # Bcc is not included in email headers
+        self.assertEquals(message['Bcc'], None)
+
+        self.assertTrue(u'宛先 <example@example.net>' in django_mail.outbox[0].bcc)
 
 class DjangoMailISO2022JPTestCase(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'iso-2022-jp'
