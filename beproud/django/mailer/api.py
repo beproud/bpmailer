@@ -230,12 +230,13 @@ def send_mail(subject, message, from_email, recipient_list,
     log_message(msg, return_val) 
     return return_val
 
-def _render_mail_template(template_name, extra_context={}):
+def _render_mail_template(template_name, extra_context=None):
     """
     Renders the template and returns the resulting text.
     """
-    context = getattr(settings, "EMAIL_DEFAULT_CONTEXT", {})
-    context.update(extra_context)
+    context = {}
+    context.update(getattr(settings, "EMAIL_DEFAULT_CONTEXT", {}))
+    context.update(extra_context or {})
     return render_to_string(template_name, context)
 
 def render_message(template_name, extra_context={}):

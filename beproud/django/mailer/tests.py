@@ -2,6 +2,7 @@
 
 import os
 import time
+import copy
 import logging
 from logging.handlers import BufferingHandler
 
@@ -30,6 +31,7 @@ __all__ = (
     'EmailAllForwardTestCase',
     'EmailAllForwardTestCase2',
     'TemplateTestCase',
+    'TemplateContextTestCase',
     'DjangoMailISO2022JPTestCase',
     'DjangoMailUTF8TestCase',
     'SignalTest',
@@ -52,7 +54,7 @@ AVAILABLE_SETTINGS = [
     "EMAIL_CHARSET", "EMAIL_CHARSETS",
     "EMAIL_CHARSET_ALIASES", "EMAIL_CHARSET_CODECS",
     "EMAIL_ALL_FORWARD", "EMAIL_USE_LOCALTIME",
-    "EMAIL_BACKEND",
+    "EMAIL_BACKEND", "EMAIL_DEFAULT_CONTEXT",
 ]
 
 class MailTestCase(object):
@@ -68,6 +70,7 @@ class MailTestCase(object):
     EMAIL_ALL_FORWARD = None
     EMAIL_USE_LOCALTIME = None
     EMAIL_BACKEND = 'beproud.django.mailer.backends.locmem.EmailBackend' 
+    EMAIL_DEFAULT_CONTEXT = {}
 
     def setUp(self):
         from beproud.django.mailer.models import init_mailer
@@ -99,6 +102,7 @@ class MailTestCase(object):
         for setting_name in AVAILABLE_SETTINGS:
             setting_value = getattr(self, setting_name, None)
             if setting_value:
+                setting_value = copy.deepcopy(setting_value)
                 setattr(self, "_old_"+setting_name, getattr(settings, setting_name, None))
                 setattr(settings, setting_name, setting_value)
         init_mailer()
@@ -384,6 +388,81 @@ class TemplateTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(message['Bcc'], None)
 
         self.assertTrue(u'宛先 <example@example.net>' in django_mail.outbox[0].bcc)
+
+class TemplateContextTestCase(MailTestCase, DjangoTestCase):
+    DEFAULT_CHARSET = 'utf-8'
+    EMAIL_DEFAULT_CONTEXT = {"subject": u'件名'}
+
+    def test_email_default_context(self):
+        send_template_mail(
+            u'mailer/mail.tpl',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
+            extra_context={
+                'body': u'本文',
+            },
+            fail_silently=False,
+        )
+
+        self.assertEquals(len(django_mail.outbox), 1)
+        self.assertEquals(django_mail.outbox[0].body, u'本文\n')
+
+        message = django_mail.outbox[0].message()
+        self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
+        self.assertEquals(str(message['To']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
+        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+
+    def test_email_default_context_override(self):
+        send_template_mail(
+            u'mailer/mail.tpl',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
+            extra_context={
+                'subject': 'overwrite',
+                'body': u'本文',
+            },
+            fail_silently=False,
+        )
+
+        self.assertEquals(len(django_mail.outbox), 1)
+        self.assertEquals(django_mail.outbox[0].body, u'本文\n')
+
+        message = django_mail.outbox[0].message()
+        self.assertEquals(str(message['Subject']), 'overwrite')
+        self.assertEquals(str(message['To']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
+        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+
+    def test_email_default_context_overwrite(self):
+        send_template_mail(
+            u'mailer/mail.tpl',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
+            extra_context={
+                'subject': 'overwrite',
+                'body': u'本文',
+            },
+            fail_silently=False,
+        )
+        
+        # Check to make sure we don't overwrite the data in
+        # settings.EMAIL_DEFAULT_CONTEXT
+        send_template_mail(
+            u'mailer/mail.tpl',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
+            extra_context={
+                'body': u'本文',
+            },
+            fail_silently=False,
+        )
+
+        self.assertEquals(len(django_mail.outbox), 2)
+        self.assertEquals(django_mail.outbox[1].body, u'本文\n')
+
+        message = django_mail.outbox[1].message()
+        self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
+        self.assertEquals(str(message['To']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
+        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
 
 class DjangoMailISO2022JPTestCase(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'iso-2022-jp'
