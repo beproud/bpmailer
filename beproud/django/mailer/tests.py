@@ -6,10 +6,14 @@ import copy
 import logging
 from logging.handlers import BufferingHandler
 
+import mock
+
 from django.test import TestCase as DjangoTestCase
 from django.core import mail as django_mail
 from django.conf import settings
 
+from beproud.django.mailer import api as mailer_api
+from beproud.django.mailer import tasks as mailer_tasks
 from beproud.django.mailer.backends.base import BaseEmailBackend
 from beproud.django.mailer import (
     EmailMessage,
@@ -41,6 +45,8 @@ __all__ = (
     'FailSilentlyTestCase',
     'AttachmentTestCase',
     'HtmlMailTestCase',
+
+    'TaskTests',
 )
 
 class EmailError(Exception):
@@ -1024,3 +1030,114 @@ class HtmlMailTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(payloads[1]['Content-Transfer-Encoding'], 'base64')
         self.assertEquals(payloads[1]['Content-Type'], 'text/html; charset="UTF-8"')
         self.assertEquals(payloads[1].get_payload(), "PGgxPuacrOaWhzwvaDE+Cg==\n")
+
+class TaskTests(MailTestCase, DjangoTestCase):
+
+    @mock.patch.object(mailer_api, 'send_mail')
+    def test_send_mail(self, send_mail):
+        mailer_tasks.send_mail.delay(
+            u'件名',
+            u'本文',
+            'example-from@example.net',
+            ['example@example.net'],
+        )
+
+        send_mail.assert_called_once_with(
+            u'件名',
+            u'本文',
+            'example-from@example.net',
+            ['example@example.net'],
+        )
+
+    @mock.patch.object(mailer_api, 'send_template_mail')
+    def test_send_template_mail(self, send_template_mail):
+        mailer_tasks.send_template_mail(
+            u'mailer/mail.tpl',
+            u'example-from@example.net',
+            [u'example@example.net'],
+            extra_context={
+                'subject': u'件名',
+                'body': u'本文',
+                'html': u"<h1>本文</h1>",
+            },
+            fail_silently=False,
+            html_template_name=u'mailer/html_mail.tpl',
+        )
+
+        send_template_mail.assert_called_once_with(
+            u'mailer/mail.tpl',
+            u'example-from@example.net',
+            [u'example@example.net'],
+            extra_context={
+                'subject': u'件名',
+                'body': u'本文',
+                'html': u"<h1>本文</h1>",
+            },
+            fail_silently=False,
+            html_template_name=u'mailer/html_mail.tpl',
+        )
+
+    @mock.patch.object(mailer_api, 'send_mass_mail')
+    def test_send_mass_mail(self, send_mass_mail):
+        mailer_tasks.send_mass_mail(list((
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example%s@example.net>' % i],
+        ) for i in range(10)))
+
+        send_mass_mail.assert_called_once_with(list((
+           u'件名',
+           u'本文',
+           u'差出人 <example-from@example.net>',
+           [u'宛先 <example%s@example.net>' % i],
+        ) for i in range(10)))
+
+
+    @mock.patch.object(mailer_api, 'mail_managers')
+    def test_mail_managers(self, mail_managers):
+        mailer_tasks.mail_managers(
+           u'件名',
+           u'本文',
+           fail_silently=True,
+        )
+
+        mail_managers.assert_called_once_with(
+            u'件名',
+           u'本文',
+           fail_silently=True,
+        )
+
+    @mock.patch.object(mailer_api, 'mail_managers_template')
+    def test_mail_managers_template(self, mail_managers_template):
+        mailer_tasks.mail_managers_template(
+           u'mailer/mail.tpl',
+            extra_context={
+                'subject': u'件名',
+                'body': u'本文',
+            },
+           fail_silently=True,
+        )
+
+        mail_managers_template.assert_called_once_with(
+           u'mailer/mail.tpl',
+            extra_context={
+                'subject': u'件名',
+                'body': u'本文',
+            },
+           fail_silently=True,
+        )
+
+    @mock.patch.object(mailer_api, 'mail_admins')
+    def test_mail_admins(self, mail_admins):
+        mailer_tasks.mail_admins(
+           u'件名',
+           u'本文',
+           fail_silently=True,
+        )
+
+        mail_admins.assert_called_once_with(
+            u'件名',
+           u'本文',
+           fail_silently=True,
+        )

@@ -1,14 +1,38 @@
 #!/usr/bin/env python
 #:coding=utf-8:
 
+# XXX: Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
+# in multiprocessing/util.py _exit_function when running `python
+# setup.py test` (see
+# http://www.eby-sarna.com/pipermail/peak/2010-May/003357.html)
+try:
+    import multiprocessing
+except ImportError, e:
+    pass
+
+import sys
+import os
+import fnmatch
+
+try:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    for fn in os.listdir(current_dir):
+        if fnmatch.fnmatch(fn, 'billiard-*.egg'):
+            sys.path.append(os.path.join(current_dir, fn))
+
+    import billiard
+except ImportError, e:
+    pass
+############## End Hack ################
+
 from setuptools import setup, find_packages
  
 setup (
     name='bpmailer',
     version='0.32',
     description='Mailing utility for Django',
-    author='K.K. BeProud',
-    author_email='ianmlewis@beproud.jp',
+    author='BeProud Inc.',
+    author_email='ian@beproud.jp',
     url='https://project.beproud.jp/hg/bpmailer/',
     classifiers=[
       'Development Status :: 3 - Alpha',
@@ -23,6 +47,7 @@ setup (
     packages=find_packages(),
     namespace_packages=['beproud', 'beproud.django'],
     install_requires=['Django>=1.2'],
+    tests_require=['celery>=2.2.7', 'django-celery>=2.2.4', 'mock>=0.7.2'],
     test_suite='tests.main',
     zip_safe=False,
 )

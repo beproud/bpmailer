@@ -19,6 +19,7 @@ def main():
         'django.contrib.auth',
         'django.contrib.contenttypes',
         'beproud.django.mailer',
+        'djcelery',
     )
     global_settings.DATABASES = {
         'default': {
@@ -26,6 +27,10 @@ def main():
             'NAME': ':memory:',
         }
     }
+
+    # For Celery Tests
+    global_settings.CELERY_ALWAYS_EAGER=True
+    global_settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS=True
 
     from django.test.utils import get_runner
     test_runner = get_runner(global_settings)

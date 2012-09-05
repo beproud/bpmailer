@@ -8,6 +8,7 @@ syntax: glob
 *.pyc
 *.swp
 *.sqlite
+*.egg
 .tox
 build
 dist
