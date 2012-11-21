@@ -13,7 +13,7 @@ from django.conf import settings
 
 from beproud.django.mailer.signals import mail_pre_send, mail_post_send
 
-__version__ = '0.33'
+__version__ = '0.34'
 
 __all__ = (
     'get_connection',
