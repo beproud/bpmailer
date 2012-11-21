@@ -1,5 +1,7 @@
 #:coding=utf-8:
 
+import logging
+
 from email import Encoders
 from email.Utils import formatdate
 from email.MIMEBase import MIMEBase
@@ -9,7 +11,7 @@ from django.utils.encoding import smart_str
 from django.template.loader import render_to_string
 from django.conf import settings
 
-import logging
+from beproud.django.mailer.signals import mail_pre_send, mail_post_send
 
 __version__ = '0.33'
 
@@ -116,6 +118,11 @@ class EmailMessage(django_mail.EmailMessage):
             attachment.set_payload(content)
             Encoders.encode_base64(attachment)
         return attachment
+
+    def send(self, *args, **kwargs):
+        mail_pre_send.send(sender=self, message=self)
+        super(EmailMessage, self).send(*args, **kwargs)
+        mail_post_send.send(sender=self, message=self)
 
 class EmailMultiAlternatives(EmailMessage):
     """
@@ -366,7 +373,13 @@ def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
             message.encoding = charset
         return message
     
-    return_val = connection.send_messages(map(_message, datatuple))
+    messages = [_message(d) for d in datatuple]
+
+    for message in messages:
+        mail_pre_send.send(sender=message, message=message)
+    return_val = connection.send_messages(messages)
+    for message in messages:
+        mail_post_send.send(sender=message, message=message)
     return return_val
 
 def mail_managers(subject, message, fail_silently=False, encoding=None):
