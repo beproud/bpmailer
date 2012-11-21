@@ -514,7 +514,7 @@ class SignalTest(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf8'
     EMAIL_CHARSET = 'iso-2022-jp'
 
-    def test_pre_send_singnal(self):
+    def test_pre_send_signal(self):
         from beproud.django.mailer.signals import mail_pre_send
         def pre_send_signal(sender, message, **kwargs):
             message.from_email = message.from_email.replace(u'\uff5e', u'\u301c')
@@ -540,7 +540,7 @@ class SignalTest(MailTestCase, DjangoTestCase):
         self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
         self.assertEqual(message.get_payload(), "\x1b$BK\\J8!A%F%9%H\x1b(B")
 
-    def test_post_send_singnal(self):
+    def test_post_send_signal(self):
         from beproud.django.mailer.signals import mail_post_send
         
         test_list = []
