@@ -934,6 +934,48 @@ class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
 
 class AttachmentTestCase(MailTestCase, DjangoTestCase):
 
+    def test_send_mail(self):
+        send_mail(
+            u'件名',
+            u'本文',
+            'example-from@example.net',
+            ['example@example.net'],
+            attachments=[('test.txt', u"データ", None)],
+        )
+
+        message = django_mail.outbox[0]
+        self.assertEquals(message.attachments, [('test.txt', u"データ", None)])
+
+    def test_send_template_mail(self):
+        send_template_mail(
+            u'mailer/mail.tpl',
+            u'example-from@example.net',
+            [u'example@example.net'],
+            extra_context={
+                'subject': u'件名',
+                'body': u'本文',
+                'html': u"<h1>本文</h1>",
+            },
+            fail_silently=False,
+            html_template_name=u'mailer/html_mail.tpl',
+            attachments=[('test.txt', u"データ", None)],
+        )
+
+        message = django_mail.outbox[0]
+        self.assertEquals(message.attachments, [('test.txt', u"データ", None)])
+
+    def test_binary_attachment(self):
+        message = EmailMessage(attachments=[('test.binary', u"データ".encode("utf8"), None)]).message()
+
+        payloads = message.get_payload()
+
+        # 添付ファイルのペイロード
+        self.assertEquals(len(payloads), 1)
+        self.assertEquals(payloads[0]['Content-Transfer-Encoding'], 'base64')
+        self.assertEquals(payloads[0]['Content-Type'], 'application/octet-stream')
+        self.assertEquals(payloads[0]['Content-Disposition'], 'attachment; filename="test.binary"')
+        self.assertEquals(payloads[0].get_payload(), "44OH44O844K/")
+
     def test_text_attachment(self):
         message = EmailMessage(attachments=[('test.txt', u"データ", None)]).message()
 

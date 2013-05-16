@@ -168,7 +168,7 @@ class EmailMultiAlternatives(EmailMessage):
 
 def send_mail(subject, message, from_email, recipient_list,
               fail_silently=False, auth_user=None, auth_password=None, encoding=None, connection=None,
-              html_message=None, cc=None, bcc=None):
+              html_message=None, cc=None, bcc=None, attachments=None):
     """
     Sends an email message.
 
@@ -202,6 +202,13 @@ def send_mail(subject, message, from_email, recipient_list,
                            Useful for sending html emails.
     cc                  -- The cc email recipient list.
     bcc                 -- The bcc recipient list.
+    attachments         -- A list of two/three tuples used as attachments for the email.
+                           The fields in the tuple are as follows:
+                               
+                               - A filename
+                               - A str object containing the file content.
+                               - The mimetype for the file (optional but recommended.)
+                                 If the mimetype is not provided it is guessed. 
     """
 
     if settings.DEBUG and hasattr(settings, "EMAIL_ALL_FORWARD"):
@@ -232,6 +239,10 @@ def send_mail(subject, message, from_email, recipient_list,
             connection=connection,
         )
 
+    if attachments:
+        for attachment in attachments:
+            msg.attach(*attachment)
+
     msg.encoding = encoding
     return_val = msg.send()
     log_message(msg, return_val) 
@@ -261,7 +272,7 @@ def render_message(template_name, extra_context={}):
    
 def send_template_mail(template_name, from_email, recipient_list, extra_context={},
                        fail_silently=False, auth_user=None, auth_password=None, encoding=None, connection=None,
-                       html_template_name=None, cc=None, bcc=None):
+                       html_template_name=None, cc=None, bcc=None, attachments=None):
     u"""
     Send an email using a django template. The template should be formatted
     so that the first line of the template is the subject. All subsequent lines
@@ -303,6 +314,13 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
                            containing the html body.  Useful for sending html emails.
     cc                  -- The cc email recipient list.
     bcc                 -- The bcc recipient list.
+    attachments         -- A list of two/three tuples used as attachments for the email.
+                           The fields in the tuple are as follows:
+                               
+                               - A filename
+                               - A str object containing the file content.
+                               - The mimetype for the file (optional but recommended.)
+                                 If the mimetype is not provided it is guessed. 
     """
     if not isinstance(recipient_list, list) and not isinstance(recipient_list, tuple):
         recipient_list = [recipient_list]
@@ -332,6 +350,7 @@ def send_template_mail(template_name, from_email, recipient_list, extra_context=
         encoding=encoding,
         connection=connection,
         html_message=html_message,
+        attachments=attachments,
     )
 
 def send_mass_mail(datatuple, fail_silently=False, auth_user=None,
