@@ -1093,7 +1093,7 @@ class TaskTests(MailTestCase, DjangoTestCase):
 
     @mock.patch.object(mailer_api, 'send_template_mail')
     def test_send_template_mail(self, send_template_mail):
-        mailer_tasks.send_template_mail(
+        mailer_tasks.send_template_mail.delay(
             u'mailer/mail.tpl',
             u'example-from@example.net',
             [u'example@example.net'],
@@ -1121,7 +1121,7 @@ class TaskTests(MailTestCase, DjangoTestCase):
 
     @mock.patch.object(mailer_api, 'send_mass_mail')
     def test_send_mass_mail(self, send_mass_mail):
-        mailer_tasks.send_mass_mail(list((
+        mailer_tasks.send_mass_mail.delay(list((
            u'件名',
            u'本文',
            u'差出人 <example-from@example.net>',
@@ -1138,7 +1138,7 @@ class TaskTests(MailTestCase, DjangoTestCase):
 
     @mock.patch.object(mailer_api, 'mail_managers')
     def test_mail_managers(self, mail_managers):
-        mailer_tasks.mail_managers(
+        mailer_tasks.mail_managers.delay(
            u'件名',
            u'本文',
            fail_silently=True,
@@ -1152,7 +1152,7 @@ class TaskTests(MailTestCase, DjangoTestCase):
 
     @mock.patch.object(mailer_api, 'mail_managers_template')
     def test_mail_managers_template(self, mail_managers_template):
-        mailer_tasks.mail_managers_template(
+        mailer_tasks.mail_managers_template.delay(
            u'mailer/mail.tpl',
             extra_context={
                 'subject': u'件名',
@@ -1172,7 +1172,7 @@ class TaskTests(MailTestCase, DjangoTestCase):
 
     @mock.patch.object(mailer_api, 'mail_admins')
     def test_mail_admins(self, mail_admins):
-        mailer_tasks.mail_admins(
+        mailer_tasks.mail_admins.delay(
            u'件名',
            u'本文',
            fail_silently=True,

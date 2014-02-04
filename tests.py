@@ -2,6 +2,9 @@ import os
 import sys
 import django
 
+# Make sure djcelery is imported before celery
+import djcelery
+
 def main():
     """
     Standalone django model test with a 'memory-only-django-installation'.
@@ -29,15 +32,18 @@ def main():
     }
 
     # For Celery Tests
-    global_settings.CELERY_ALWAYS_EAGER=True
-    global_settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS=True
+    global_settings.CELERY_ALWAYS_EAGER = True
+    global_settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
     from django.test.utils import get_runner
     test_runner = get_runner(global_settings)
 
     if django.VERSION > (1,2):
         test_runner = test_runner()
-        failures = test_runner.run_tests(['mailer'])
+        if django.VERSION > (1,6):
+            failures = test_runner.run_tests(['beproud.django.mailer.tests'])
+        else:
+            failures = test_runner.run_tests(['mailer'])
     else:
         failures = test_runner(['mailer'], verbosity=1)
     sys.exit(failures)
