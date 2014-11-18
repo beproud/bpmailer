@@ -1,1 +1,1 @@
-from beproud.django.mailer.api import *
+from beproud.django.mailer.api import *  # NOQA

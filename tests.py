@@ -2,6 +2,7 @@ import os
 import sys
 import django
 
+
 def main():
     """
     Standalone django model test with a 'memory-only-django-installation'.
@@ -10,7 +11,7 @@ def main():
     """
     import logging
     logging.basicConfig()
- 
+
     os.environ["DJANGO_SETTINGS_MODULE"] = "django.conf.global_settings"
     from django.conf import global_settings
 
@@ -29,17 +30,25 @@ def main():
     }
 
     # For Celery Tests
-    global_settings.CELERY_ALWAYS_EAGER=True
-    global_settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS=True
+    global_settings.CELERY_ALWAYS_EAGER = True
+    global_settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
+
+    if django.VERSION > (1, 7):
+        django.setup()
 
     from django.test.utils import get_runner
     test_runner = get_runner(global_settings)
 
-    if django.VERSION > (1,2):
+    if django.VERSION > (1, 2):
         test_runner = test_runner()
-        failures = test_runner.run_tests(['mailer'])
+        if django.VERSION > (1, 6):
+            tests = ['beproud.django.mailer']
+        else:
+            tests = ['mailer']
+        failures = test_runner.run_tests(tests)
     else:
         failures = test_runner(['mailer'], verbosity=1)
+
     sys.exit(failures)
 
 if __name__ == '__main__':

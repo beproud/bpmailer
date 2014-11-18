@@ -1,5 +1,6 @@
 """Base email backend class."""
 
+
 class BaseEmailBackend(object):
     """
     Base class for email backend implementations.
@@ -57,6 +58,6 @@ class BaseEmailBackend(object):
                 raise
             return False
         return True
- 
+
     def _send_message(self, email_message):
         raise NotImplementedError
