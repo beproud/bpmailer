@@ -164,13 +164,13 @@ class EmailMessage(django_mail.EmailMessage):
             self.connection = get_connection(fail_silently=fail_silently)
         return self.connection
 
-    # TODO: これは必須？
-    #def recipients(self):
-    #    """
-    #    Returns a list of all recipients of the email (includes direct
-    #    addressees as well as Cc and Bcc entries).
-    #    """
-    #    return self.to + self.cc + self.bcc
+    # NOTE: Django 1.2 の場合の cc に対応
+    def recipients(self):
+        """
+        Returns a list of all recipients of the email (includes direct
+        addressees as well as Cc and Bcc entries).
+        """
+        return self.to + self.cc + self.bcc
 
     def message(self):
         encoding = self.encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
@@ -194,22 +194,6 @@ class EmailMessage(django_mail.EmailMessage):
                 continue
             msg[name] = value
         return msg
-
-    #def _create_mime_attachment(self, content, mimetype):
-    #    """
-    #    Converts the content, mimetype pair into a MIME attachment object.
-    #    """
-    #    basetype, subtype = mimetype.split('/', 1)
-    #    if basetype == 'text':
-    #        encoding = self.encoding or getattr(settings, "EMAIL_CHARSET",
-    #                                            settings.DEFAULT_CHARSET)
-    #        attachment = SafeMIMEText(smart_str(content, encoding), subtype, encoding)
-    #    else:
-    #        # Encode non-text attachments with base64.
-    #        attachment = MIMEBase(basetype, subtype)
-    #        attachment.set_payload(content)
-    #        Encoders.encode_base64(attachment)
-    #    return attachment
 
     def _create_mime_attachment(self, content, mimetype):
         """
