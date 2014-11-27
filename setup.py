@@ -30,7 +30,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='bpmailer',
-    version='0.36a',
+    version='0.36',
     description='Mailing utility for Django',
     author='BeProud Inc.',
     author_email='ian@beproud.jp',
