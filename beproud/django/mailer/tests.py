@@ -4,6 +4,8 @@ import os
 import time
 import copy
 import logging
+from email import charset
+from itertools import chain
 from logging.handlers import BufferingHandler
 
 import mock
@@ -14,7 +16,9 @@ from django.conf import settings
 
 from beproud.django.mailer import api as mailer_api
 from beproud.django.mailer import tasks as mailer_tasks
+from beproud.django.mailer.models import init_mailer
 from beproud.django.mailer.backends.base import BaseEmailBackend
+from beproud.django.mailer.signals import mail_pre_send, mail_post_send
 from beproud.django.mailer import (
     EmailMessage,
     EmailMultiAlternatives,
@@ -49,8 +53,10 @@ __all__ = (
     'TaskTests',
 )
 
+
 class EmailError(Exception):
     pass
+
 
 class ErrorEmailBackend(BaseEmailBackend):
     def _send_message(self, email_message):
@@ -62,6 +68,7 @@ AVAILABLE_SETTINGS = [
     "EMAIL_ALL_FORWARD", "EMAIL_USE_LOCALTIME",
     "EMAIL_BACKEND", "EMAIL_DEFAULT_CONTEXT",
 ]
+
 
 class MailTestCase(object):
     ADMINS = (('Admin', 'admin@example.net'),)
@@ -75,13 +82,10 @@ class MailTestCase(object):
     EMAIL_CHARSET_CODECS = None
     EMAIL_ALL_FORWARD = None
     EMAIL_USE_LOCALTIME = None
-    EMAIL_BACKEND = 'beproud.django.mailer.backends.locmem.EmailBackend' 
+    EMAIL_BACKEND = 'beproud.django.mailer.backends.locmem.EmailBackend'
     EMAIL_DEFAULT_CONTEXT = {}
 
     def setUp(self):
-        from beproud.django.mailer.models import init_mailer
-        from email import charset
-
         self._old_email_CHARSETS = charset.CHARSETS
         self._old_email_ALIASES = charset.ALIASES
         self._old_email_CODEC_MAP = charset.ALIASES
@@ -114,8 +118,6 @@ class MailTestCase(object):
         init_mailer()
 
     def tearDown(self):
-        from email import charset
-        from beproud.django.mailer.signals import mail_pre_send, mail_post_send
         mail_pre_send.recievers = []
         mail_post_send.recievers = []
 
@@ -138,37 +140,39 @@ class MailTestCase(object):
             else:
                 setattr(settings, setting_name, old_setting_value)
 
+
 class EncodingTestCaseUTF8(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf-8'
 
     def test_send_mail(self):
         send_mail(
-           u'件名',
-           u'本文',
-           'example-from@example.net',
-           ['example@example.net'],
-       )
+            u'件名',
+            u'本文',
+            'example-from@example.net',
+            ['example@example.net'],
+        )
         self.assertEquals(len(django_mail.outbox), 1)
         self.assertEquals(django_mail.outbox[0].body, u'本文')
 
-        message = django_mail.outbox[0].message() 
+        message = django_mail.outbox[0].message()
         self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
         self.assertEquals(str(message['To']), 'example@example.net')
         self.assertEquals(str(message['From']), 'example-from@example.net')
 
     def test_email_charset_strict(self):
         send_mail(
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example@example.net>'],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
         )
-        
+
         message = django_mail.outbox[0].message()
-        
+
         self.assertEqual(str(message['Subject']), "=?UTF-8?b?5Lu25ZCN?=")
         self.assertEqual(str(message['To']), "=?UTF-8?b?5a6b5YWI?= <example@example.net>")
-        self.assertEqual(str(message['From']), "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
+        self.assertEqual(str(message['From']),
+                         "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="UTF-8"')
         self.assertEqual(message.get_payload(), "5pys5paH\n")
@@ -180,10 +184,10 @@ class EncodingTestCaseUTF8(MailTestCase, DjangoTestCase):
             'example-from@example.net',
             ['example@example.net'],
             cc=['cc@example.net'],
-       )
+        )
         self.assertEquals(len(django_mail.outbox), 1)
-        
-        message = django_mail.outbox[0].message() 
+
+        message = django_mail.outbox[0].message()
         self.assertEquals(str(message['To']), 'example@example.net')
         self.assertEquals(str(message['Cc']), 'cc@example.net')
         self.assertEquals(str(message['From']), 'example-from@example.net')
@@ -195,10 +199,10 @@ class EncodingTestCaseUTF8(MailTestCase, DjangoTestCase):
             'example-from@example.net',
             ['example@example.net'],
             bcc=['bcc@example.net'],
-       )
+        )
         self.assertEquals(len(django_mail.outbox), 1)
 
-        message = django_mail.outbox[0].message() 
+        message = django_mail.outbox[0].message()
 
         self.assertEquals(str(message['To']), 'example@example.net')
         self.assertEquals(str(message['From']), 'example-from@example.net')
@@ -208,6 +212,7 @@ class EncodingTestCaseUTF8(MailTestCase, DjangoTestCase):
 
         self.assertTrue(u'bcc@example.net' in django_mail.outbox[0].bcc)
 
+
 class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf-8'
     EMAIL_CHARSET = 'iso-2022-jp'
@@ -215,11 +220,11 @@ class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
 
     def test_send_mail_encoding(self):
         send_mail(
-           u'件名',
-           u'本文',
-           'example-from@example.net',
-           ['example@example.net'],
-           encoding="utf-8",
+            u'件名',
+            u'本文',
+            'example-from@example.net',
+            ['example@example.net'],
+            encoding="utf-8",
         )
         self.assertEquals(len(django_mail.outbox), 1)
         self.assertEquals(django_mail.outbox[0].body, u'本文')
@@ -228,77 +233,84 @@ class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
         self.assertEquals(str(message['To']), 'example@example.net')
         self.assertEquals(str(message['From']), 'example-from@example.net')
-    
+
     def test_email_charset(self):
         send_mail(
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example@example.net>'],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
         )
-        
+
         self.assertEquals(len(django_mail.outbox), 1)
         self.assertEquals(django_mail.outbox[0].body, u'本文')
 
         message = django_mail.outbox[0].message()
         self.assertEquals(str(message['Subject']), '=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=')
-        self.assertEquals(str(message['To']), '=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>')
-        self.assertEquals(str(message['From']), '=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>')
+        self.assertEquals(str(message['To']),
+                          '=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>')
+        self.assertEquals(str(message['From']),
+                          '=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>')
 
     def test_email_charset_strict(self):
         send_mail(
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example@example.net>'],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
         )
-        
+
         message = django_mail.outbox[0].message()
 
         self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
-        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>")
-        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(str(message['To']),
+                         "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>")
+        self.assertEqual(str(message['From']),
+                         "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
         self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
 
+
 class EmailAllForwardTestCase(MailTestCase, DjangoTestCase):
     DEBUG = True
-    EMAIL_ALL_FORWARD="all-forward@example.net"
+    EMAIL_ALL_FORWARD = "all-forward@example.net"
 
     def test_email_all_forward(self):
         send_mail(
-           u'件名',
-           u'本文',
-           'example-from@example.net',
-           ['example@example.net'],
-       )
+            u'件名',
+            u'本文',
+            'example-from@example.net',
+            ['example@example.net'],
+        )
         self.assertEquals(len(django_mail.outbox), 1)
         self.assertEquals(django_mail.outbox[0].body, u'本文')
 
-        message = django_mail.outbox[0].message() 
+        message = django_mail.outbox[0].message()
         self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
         self.assertEquals(str(message['To']), 'all-forward@example.net')
         self.assertEquals(str(message['From']), 'all-forward@example.net')
 
+
 class EmailAllForwardTestCase2(MailTestCase, DjangoTestCase):
     DEBUG = False
-    EMAIL_ALL_FORWARD="all-forward@example.net"
+    EMAIL_ALL_FORWARD = "all-forward@example.net"
 
     def test_email_all_forward(self):
         send_mail(
-           u'件名',
-           u'本文',
-           'example-from@example.net',
-           ['example@example.net'],
-       )
+            u'件名',
+            u'本文',
+            'example-from@example.net',
+            ['example@example.net'],
+        )
         self.assertEquals(len(django_mail.outbox), 1)
         self.assertEquals(django_mail.outbox[0].body, u'本文')
 
-        message = django_mail.outbox[0].message() 
+        message = django_mail.outbox[0].message()
         self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
         self.assertEquals(str(message['To']), 'example@example.net')
         self.assertEquals(str(message['From']), 'example-from@example.net')
+
 
 class TemplateTestCase(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf-8'
@@ -322,7 +334,8 @@ class TemplateTestCase(MailTestCase, DjangoTestCase):
         message = django_mail.outbox[0].message()
         self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
         self.assertEquals(str(message['To']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
-        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+        self.assertEquals(str(message['From']),
+                          '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
 
     def test_multi_line_subject(self):
         send_template_mail(
@@ -343,9 +356,11 @@ class TemplateTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(mail_message.body, u'本文\n')
 
         message = mail_message.message()
-        self.assertEquals(str(message['Subject']), '=?UTF-8?b?44GT44KM44Gv5pS56KGM44Gu44GC44KL5Lu25ZCN?=')
+        self.assertEquals(str(message['Subject']),
+                          '=?UTF-8?b?44GT44KM44Gv5pS56KGM44Gu44GC44KL5Lu25ZCN?=')
         self.assertEquals(str(message['To']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
-        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+        self.assertEquals(str(message['From']),
+                          '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
 
     def test_cc(self):
         send_template_mail(
@@ -365,9 +380,11 @@ class TemplateTestCase(MailTestCase, DjangoTestCase):
         mail_message = django_mail.outbox[0]
 
         message = mail_message.message()
-        self.assertEquals(str(message['To']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+        self.assertEquals(str(message['To']),
+                          '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
         self.assertEquals(str(message['Cc']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
-        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+        self.assertEquals(str(message['From']),
+                          '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
 
     def test_bcc(self):
         send_template_mail(
@@ -387,13 +404,16 @@ class TemplateTestCase(MailTestCase, DjangoTestCase):
         mail_message = django_mail.outbox[0]
 
         message = mail_message.message()
-        self.assertEquals(str(message['To']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
-        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+        self.assertEquals(str(message['To']),
+                          '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+        self.assertEquals(str(message['From']),
+                          '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
 
         # Bcc is not included in email headers
         self.assertEquals(message['Bcc'], None)
 
         self.assertTrue(u'宛先 <example@example.net>' in django_mail.outbox[0].bcc)
+
 
 class TemplateContextTestCase(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf-8'
@@ -416,7 +436,8 @@ class TemplateContextTestCase(MailTestCase, DjangoTestCase):
         message = django_mail.outbox[0].message()
         self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
         self.assertEquals(str(message['To']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
-        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+        self.assertEquals(str(message['From']),
+                          '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
 
     def test_email_default_context_override(self):
         send_template_mail(
@@ -436,7 +457,8 @@ class TemplateContextTestCase(MailTestCase, DjangoTestCase):
         message = django_mail.outbox[0].message()
         self.assertEquals(str(message['Subject']), 'overwrite')
         self.assertEquals(str(message['To']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
-        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+        self.assertEquals(str(message['From']),
+                          '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
 
     def test_email_default_context_overwrite(self):
         send_template_mail(
@@ -449,7 +471,7 @@ class TemplateContextTestCase(MailTestCase, DjangoTestCase):
             },
             fail_silently=False,
         )
-        
+
         # Check to make sure we don't overwrite the data in
         # settings.EMAIL_DEFAULT_CONTEXT
         send_template_mail(
@@ -468,54 +490,62 @@ class TemplateContextTestCase(MailTestCase, DjangoTestCase):
         message = django_mail.outbox[1].message()
         self.assertEquals(str(message['Subject']), '=?UTF-8?b?5Lu25ZCN?=')
         self.assertEquals(str(message['To']), '=?UTF-8?b?5a6b5YWI?= <example@example.net>')
-        self.assertEquals(str(message['From']), '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+        self.assertEquals(str(message['From']),
+                          '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
+
 
 class DjangoMailISO2022JPTestCase(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'iso-2022-jp'
 
     def test_send_mail(self):
         django_mail.send_mail(
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example@example.net>'],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
         )
-        
+
         message = django_mail.outbox[0].message()
 
         self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
-        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>")
-        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(str(message['To']),
+                         "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>")
+        self.assertEqual(str(message['From']),
+                         "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
         self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
 
+
 class DjangoMailUTF8TestCase(MailTestCase, DjangoTestCase):
-    DEFAULT_CHARSET = 'utf8'
+    # NOTE: Django の場合は "utf-8" に一致にしないと
+    #       Content-Transfer-Encodingがbase64になる
+    DEFAULT_CHARSET = 'utf-8'
 
     def test_send_mail(self):
         django_mail.send_mail(
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example@example.net>'],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
         )
-        
+
         message = django_mail.outbox[0].message()
 
         self.assertEqual(str(message['Subject']), "=?UTF-8?b?5Lu25ZCN?=")
         self.assertEqual(str(message['To']), "=?UTF-8?b?5a6b5YWI?= <example@example.net>")
-        self.assertEqual(str(message['From']), "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
+        self.assertEqual(str(message['From']),
+                         "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="UTF-8"')
         self.assertEqual(message.get_payload(), "5pys5paH\n")
+
 
 class SignalTest(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf8'
     EMAIL_CHARSET = 'iso-2022-jp'
 
     def test_pre_send_signal(self):
-        from beproud.django.mailer.signals import mail_pre_send
         def pre_send_signal(sender, message, **kwargs):
             message.from_email = message.from_email.replace(u'\uff5e', u'\u301c')
             message.to = map(lambda x: x.replace(u'\uff5e', u'\u301c'), message.to)
@@ -525,24 +555,24 @@ class SignalTest(MailTestCase, DjangoTestCase):
         mail_pre_send.connect(pre_send_signal)
 
         send_mail(
-           u'件名',
-           u'本文～テスト',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example@example.net>'],
+            u'件名',
+            u'本文～テスト',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
         )
 
         message = django_mail.outbox[0].message()
 
         self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
-        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>")
-        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(str(message['To']),
+                         "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example@example.net>")
+        self.assertEqual(str(message['From']),
+                         "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
         self.assertEqual(message.get_payload(), "\x1b$BK\\J8!A%F%9%H\x1b(B")
 
     def test_post_send_signal(self):
-        from beproud.django.mailer.signals import mail_post_send
-        
         test_list = []
 
         def post_send_signal(sender, message, **kwargs):
@@ -552,49 +582,54 @@ class SignalTest(MailTestCase, DjangoTestCase):
         mail_post_send.connect(post_send_signal)
 
         send_mail(
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example@example.net>'],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
         )
 
         self.assertTrue(test_list, ["arrived"])
+
 
 class MassMailTest(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf8'
 
     def test_mass_mail(self):
         send_mass_mail(((
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example%s@example.net>' % i],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example%s@example.net>' % i],
         ) for i in range(10)))
 
         for i in range(10):
             message = django_mail.outbox[i].message()
 
             self.assertEqual(str(message['Subject']), "=?UTF-8?b?5Lu25ZCN?=")
-            self.assertEqual(str(message['To']), "=?UTF-8?b?5a6b5YWI?= <example%s@example.net>" % i)
-            self.assertEqual(str(message['From']), "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
+            self.assertEqual(str(message['To']),
+                             "=?UTF-8?b?5a6b5YWI?= <example%s@example.net>" % i)
+            self.assertEqual(str(message['From']),
+                             "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
             self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
             self.assertEqual(message['Content-Type'], 'text/plain; charset="UTF-8"')
             self.assertEqual(message.get_payload(), "5pys5paH\n")
 
     def test_mass_mail_encoding(self):
         send_mass_mail(((
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example%s@example.net>' % i],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example%s@example.net>' % i],
         ) for i in range(10)), encoding='iso-2022-jp')
 
         for i in range(10):
             message = django_mail.outbox[i].message()
 
             self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
-            self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example%s@example.net>" % i)
-            self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+            self.assertEqual(str(message['To']),
+                             "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example%s@example.net>" % i)
+            self.assertEqual(str(message['From']),
+                             "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
             self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
             self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
             self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
@@ -602,32 +637,34 @@ class MassMailTest(MailTestCase, DjangoTestCase):
     def test_mass_mail_encoding_inline(self):
         send_mass_mail((
             (
-               u'件名',
-               u'本文',
-               u'差出人 <example-from@example.net>',
-               [u'宛先 <example0@example.net>'],
-               'iso-2022-jp',
+                u'件名',
+                u'本文',
+                u'差出人 <example-from@example.net>',
+                [u'宛先 <example0@example.net>'],
+                'iso-2022-jp',
             ),
             (
-               u'件名',
-               u'本文',
-               u'差出人 <example-from@example.net>',
-               [u'宛先 <example1@example.net>'],
+                u'件名',
+                u'本文',
+                u'差出人 <example-from@example.net>',
+                [u'宛先 <example1@example.net>'],
             ),
             (
-               u'件名',
-               u'本文',
-               u'差出人 <example-from@example.net>',
-               [u'宛先 <example2@example.net>'],
-               'iso-2022-jp',
+                u'件名',
+                u'本文',
+                u'差出人 <example-from@example.net>',
+                [u'宛先 <example2@example.net>'],
+                'iso-2022-jp',
             )
         ))
 
         message = django_mail.outbox[0].message()
 
         self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
-        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example0@example.net>")
-        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(str(message['To']),
+                         "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example0@example.net>")
+        self.assertEqual(str(message['From']),
+                         "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
         self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
@@ -635,15 +672,18 @@ class MassMailTest(MailTestCase, DjangoTestCase):
         message = django_mail.outbox[1].message()
         self.assertEqual(str(message['Subject']), "=?UTF-8?b?5Lu25ZCN?=")
         self.assertEqual(str(message['To']), "=?UTF-8?b?5a6b5YWI?= <example1@example.net>")
-        self.assertEqual(str(message['From']), "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
+        self.assertEqual(str(message['From']),
+                         "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="UTF-8"')
         self.assertEqual(message.get_payload(), "5pys5paH\n")
 
         message = django_mail.outbox[2].message()
         self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
-        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example2@example.net>")
-        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(str(message['To']),
+                         "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example2@example.net>")
+        self.assertEqual(str(message['From']),
+                         "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
         self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
@@ -651,31 +691,33 @@ class MassMailTest(MailTestCase, DjangoTestCase):
     def test_mass_mail_encoding_inline2(self):
         send_mass_mail((
             (
-               u'件名',
-               u'本文',
-               u'差出人 <example-from@example.net>',
-               [u'宛先 <example0@example.net>'],
-               'iso-2022-jp',
+                u'件名',
+                u'本文',
+                u'差出人 <example-from@example.net>',
+                [u'宛先 <example0@example.net>'],
+                'iso-2022-jp',
             ),
             (
-               u'件名',
-               u'本文',
-               u'差出人 <example-from@example.net>',
-               [u'宛先 <example1@example.net>'],
+                u'件名',
+                u'本文',
+                u'差出人 <example-from@example.net>',
+                [u'宛先 <example1@example.net>'],
             ),
             (
-               u'件名',
-               u'本文',
-               u'差出人 <example-from@example.net>',
-               [u'宛先 <example2@example.net>'],
-               'iso-2022-jp',
+                u'件名',
+                u'本文',
+                u'差出人 <example-from@example.net>',
+                [u'宛先 <example2@example.net>'],
+                'iso-2022-jp',
             )
         ), encoding='cp932')
 
         message = django_mail.outbox[0].message()
         self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
-        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example0@example.net>")
-        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(str(message['To']),
+                         "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example0@example.net>")
+        self.assertEqual(str(message['From']),
+                         "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
         self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
@@ -683,22 +725,23 @@ class MassMailTest(MailTestCase, DjangoTestCase):
         message = django_mail.outbox[1].message()
         self.assertEqual(str(message['Subject']), "=?SHIFT-JIS?b?jI+WvA==?=")
         self.assertEqual(str(message['To']), "=?SHIFT-JIS?b?iLaQ5g==?= <example1@example.net>")
-        self.assertEqual(str(message['From']), "=?SHIFT-JIS?b?jbePb5Bs?= <example-from@example.net>")
+        self.assertEqual(str(message['From']),
+                         "=?SHIFT-JIS?b?jbePb5Bs?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], '8bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="SHIFT-JIS"')
         self.assertEqual(message.get_payload(), "\x96{\x95\xb6")
 
         message = django_mail.outbox[2].message()
         self.assertEqual(str(message['Subject']), "=?ISO-2022-JP?b?GyRCN29MPhsoQg==?=")
-        self.assertEqual(str(message['To']), "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example2@example.net>")
-        self.assertEqual(str(message['From']), "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
+        self.assertEqual(str(message['To']),
+                         "=?ISO-2022-JP?b?GyRCMDhAaBsoQg==?= <example2@example.net>")
+        self.assertEqual(str(message['From']),
+                         "=?ISO-2022-JP?b?GyRCOjk9UD9NGyhC?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], '7bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="ISO-2022-JP"')
         self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
 
     def test_mass_mail_pre_send(self):
-        from beproud.django.mailer.signals import mail_pre_send
-        
         test_list = []
 
         def pre_send_signal(sender, message, **kwargs):
@@ -707,32 +750,27 @@ class MassMailTest(MailTestCase, DjangoTestCase):
             test_list.extend(message.to)
         mail_pre_send.connect(pre_send_signal)
 
-
         send_mass_mail(((
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example%s@example.net>' % i],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example%s@example.net>' % i],
         ) for i in range(10)), encoding='iso-2022-jp')
 
-        self.assertEqual(test_list, 
-            [
-                u'宛先 <example0@example.net>',
-                u'宛先 <example1@example.net>',
-                u'宛先 <example2@example.net>',
-                u'宛先 <example3@example.net>',
-                u'宛先 <example4@example.net>',
-                u'宛先 <example5@example.net>',
-                u'宛先 <example6@example.net>',
-                u'宛先 <example7@example.net>',
-                u'宛先 <example8@example.net>',
-                u'宛先 <example9@example.net>',
-            ]
-        )
+        self.assertEqual(test_list, [
+            u'宛先 <example0@example.net>',
+            u'宛先 <example1@example.net>',
+            u'宛先 <example2@example.net>',
+            u'宛先 <example3@example.net>',
+            u'宛先 <example4@example.net>',
+            u'宛先 <example5@example.net>',
+            u'宛先 <example6@example.net>',
+            u'宛先 <example7@example.net>',
+            u'宛先 <example8@example.net>',
+            u'宛先 <example9@example.net>',
+        ])
 
     def test_mass_mail_post_send(self):
-        from beproud.django.mailer.signals import mail_post_send
-        
         test_list = []
 
         def post_send_signal(sender, message, **kwargs):
@@ -741,99 +779,103 @@ class MassMailTest(MailTestCase, DjangoTestCase):
             test_list.extend(message.to)
         mail_post_send.connect(post_send_signal)
 
-
         send_mass_mail(((
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example%s@example.net>' % i],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example%s@example.net>' % i],
         ) for i in range(10)), encoding='iso-2022-jp')
 
-        self.assertEqual(test_list, 
-            [
-                u'宛先 <example0@example.net>',
-                u'宛先 <example1@example.net>',
-                u'宛先 <example2@example.net>',
-                u'宛先 <example3@example.net>',
-                u'宛先 <example4@example.net>',
-                u'宛先 <example5@example.net>',
-                u'宛先 <example6@example.net>',
-                u'宛先 <example7@example.net>',
-                u'宛先 <example8@example.net>',
-                u'宛先 <example9@example.net>',
-            ]
-        )
+        self.assertEqual(test_list, [
+            u'宛先 <example0@example.net>',
+            u'宛先 <example1@example.net>',
+            u'宛先 <example2@example.net>',
+            u'宛先 <example3@example.net>',
+            u'宛先 <example4@example.net>',
+            u'宛先 <example5@example.net>',
+            u'宛先 <example6@example.net>',
+            u'宛先 <example7@example.net>',
+            u'宛先 <example8@example.net>',
+            u'宛先 <example9@example.net>',
+        ])
 
     def test_mass_mail_message_obj(self):
-        from itertools import chain
-        send_mass_mail(chain(((
-               u'件名',
-               u'本文',
-               u'差出人 <example-from@example.net>',
-               [u'宛先 <example%s@example.net>' % i],
+        send_mass_mail(chain((
+            (
+                u'件名',
+                u'本文',
+                u'差出人 <example-from@example.net>',
+                [u'宛先 <example%s@example.net>' % i],
             ) for i in range(4)),
-            (EmailMessage(u'件名',u'本文', u'差出人 <example-from@example.net>', [u'宛先 <example4@example.net>']),),
+            (EmailMessage(u'件名', u'本文', u'差出人 <example-from@example.net>',
+                          [u'宛先 <example4@example.net>']),),
             ((
-               u'件名',
-               u'本文',
-               u'差出人 <example-from@example.net>',
-               [u'宛先 <example%s@example.net>' % i],
+                u'件名',
+                u'本文',
+                u'差出人 <example-from@example.net>',
+                [u'宛先 <example%s@example.net>' % i],
             ) for i in range(5, 9)),
-            (EmailMessage(u'件名',u'本文', u'差出人 <example-from@example.net>', [u'宛先 <example9@example.net>']),)
+            (EmailMessage(u'件名', u'本文', u'差出人 <example-from@example.net>',
+                          [u'宛先 <example9@example.net>']),)
         ))
 
         for i in range(10):
             message = django_mail.outbox[i].message()
 
             self.assertEqual(str(message['Subject']), "=?UTF-8?b?5Lu25ZCN?=")
-            self.assertEqual(str(message['To']), "=?UTF-8?b?5a6b5YWI?= <example%s@example.net>" % i)
-            self.assertEqual(str(message['From']), "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
+            self.assertEqual(str(message['To']),
+                             "=?UTF-8?b?5a6b5YWI?= <example%s@example.net>" % i)
+            self.assertEqual(str(message['From']),
+                             "=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
             self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
             self.assertEqual(message['Content-Type'], 'text/plain; charset="UTF-8"')
             self.assertEqual(message.get_payload(), "5pys5paH\n")
 
+
 class UTCTimeTestCase(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf-8'
-    TIME_ZONE='Asia/Tokyo'
-    EMAIL_USE_LOCALTIME=False
+    TIME_ZONE = 'Asia/Tokyo'
+    EMAIL_USE_LOCALTIME = False
 
     def test_email_utc_strict(self):
         send_mail(
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example@example.net>'],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
         )
 
         message = django_mail.outbox[0].message()
         self.assertTrue(message['Date'].endswith("-0000"))
 
+
 class LocalTimeTestCase(MailTestCase, DjangoTestCase):
     DEFAULT_CHARSET = 'utf-8'
-    TIME_ZONE='Asia/Tokyo'
-    EMAIL_USE_LOCALTIME=True
+    TIME_ZONE = 'Asia/Tokyo'
+    EMAIL_USE_LOCALTIME = True
 
     def test_email_localtime_strict(self):
         send_mail(
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example@example.net>'],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
         )
 
         message = django_mail.outbox[0].message()
         self.assertTrue(message['Date'].endswith("+0900"))
 
+
 class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
-    EMAIL_BACKEND='beproud.django.mailer.tests.ErrorEmailBackend'
+    EMAIL_BACKEND = 'beproud.django.mailer.tests.ErrorEmailBackend'
 
     def test_fail_silently(self):
         send_mail(
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example@example.net>'],
-           fail_silently=True,
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example@example.net>'],
+            fail_silently=True,
         )
         send_template_mail(
             u'mailer/mail.tpl',
@@ -846,37 +888,37 @@ class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
             fail_silently=True,
         )
         send_mass_mail(((
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example%s@example.net>' % i],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example%s@example.net>' % i],
         ) for i in range(10)), fail_silently=True)
         mail_managers(
-           u'件名',
-           u'本文',
-           fail_silently=True,
+            u'件名',
+            u'本文',
+            fail_silently=True,
         )
         mail_managers_template(
-           u'mailer/mail.tpl',
+            u'mailer/mail.tpl',
             extra_context={
                 'subject': u'件名',
                 'body': u'本文',
             },
-           fail_silently=True,
+            fail_silently=True,
         )
         mail_admins(
-           u'件名',
-           u'本文',
-           fail_silently=True,
+            u'件名',
+            u'本文',
+            fail_silently=True,
         )
 
     def test_fail_loud(self):
         try:
             send_mail(
-               u'件名',
-               u'本文',
-               u'差出人 <example-from@example.net>',
-               [u'宛先 <example@example.net>'],
+                u'件名',
+                u'本文',
+                u'差出人 <example-from@example.net>',
+                [u'宛先 <example@example.net>'],
             )
             self.fail("Expected Error")
         except EmailError:
@@ -896,25 +938,25 @@ class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
             pass
         try:
             send_mass_mail(((
-               u'件名',
-               u'本文',
-               u'差出人 <example-from@example.net>',
-               [u'宛先 <example%s@example.net>' % i],
+                u'件名',
+                u'本文',
+                u'差出人 <example-from@example.net>',
+                [u'宛先 <example%s@example.net>' % i],
             ) for i in range(10)))
             self.fail("Expected Error")
         except EmailError:
             pass
         try:
             mail_managers(
-               u'件名',
-               u'本文',
+                u'件名',
+                u'本文',
             )
             self.fail("Expected Error")
         except EmailError:
             pass
         try:
             mail_managers_template(
-               u'mailer/mail.tpl',
+                u'mailer/mail.tpl',
                 extra_context={
                     'subject': u'件名',
                     'body': u'本文',
@@ -925,12 +967,13 @@ class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
             pass
         try:
             mail_admins(
-               u'件名',
-               u'本文',
+                u'件名',
+                u'本文',
             )
             self.fail("Expected Error")
         except EmailError:
             pass
+
 
 class AttachmentTestCase(MailTestCase, DjangoTestCase):
 
@@ -965,7 +1008,8 @@ class AttachmentTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(message.attachments, [('test.txt', u"データ", None)])
 
     def test_binary_attachment(self):
-        message = EmailMessage(attachments=[('test.binary', u"データ".encode("utf8"), None)]).message()
+        message = EmailMessage(
+            attachments=[('test.binary', u"データ".encode("utf8"), None)]).message()
 
         payloads = message.get_payload()
 
@@ -988,28 +1032,17 @@ class AttachmentTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(payloads[0]['Content-Disposition'], 'attachment; filename="test.txt"')
         self.assertEquals(payloads[0].get_payload(), "44OH44O844K/\n")
 
-    def test_binary_attachment(self):
-        message = EmailMessage(attachments=[('test.binary', u"データ".encode("utf8"), None)]).message()
-
-        payloads = message.get_payload()
-
-        # 添付ファイルのペイロード
-        self.assertEquals(len(payloads), 1)
-        self.assertEquals(payloads[0]['Content-Transfer-Encoding'], 'base64')
-        self.assertEquals(payloads[0]['Content-Type'], 'application/octet-stream')
-        self.assertEquals(payloads[0]['Content-Disposition'], 'attachment; filename="test.binary"')
-        self.assertEquals(payloads[0].get_payload(), "44OH44O844K/")
 
 class HtmlMailTestCase(MailTestCase, DjangoTestCase):
 
     def test_send_mail_html(self):
         send_mail(
-           u"件名",
-           u"本文",
-           'example-from@example.net',
-           ['example@example.net'],
-           html_message=u"<h1>本文</h1>",
-       )
+            u"件名",
+            u"本文",
+            'example-from@example.net',
+            ['example@example.net'],
+            html_message=u"<h1>本文</h1>",
+        )
         self.assertEquals(len(django_mail.outbox), 1)
 
         email_message = django_mail.outbox[0]
@@ -1061,7 +1094,6 @@ class HtmlMailTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['To']), 'example@example.net')
         self.assertEquals(str(message['From']), 'example-from@example.net')
 
-
         payloads = message.get_payload()
 
         # text + html ペイロード
@@ -1093,7 +1125,7 @@ class TaskTests(MailTestCase, DjangoTestCase):
 
     @mock.patch.object(mailer_api, 'send_template_mail')
     def test_send_template_mail(self, send_template_mail):
-        mailer_tasks.send_template_mail(
+        mailer_tasks.send_template_mail.delay(
             u'mailer/mail.tpl',
             u'example-from@example.net',
             [u'example@example.net'],
@@ -1121,65 +1153,64 @@ class TaskTests(MailTestCase, DjangoTestCase):
 
     @mock.patch.object(mailer_api, 'send_mass_mail')
     def test_send_mass_mail(self, send_mass_mail):
-        mailer_tasks.send_mass_mail(list((
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example%s@example.net>' % i],
+        mailer_tasks.send_mass_mail.delay(list((
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example%s@example.net>' % i],
         ) for i in range(10)))
 
         send_mass_mail.assert_called_once_with(list((
-           u'件名',
-           u'本文',
-           u'差出人 <example-from@example.net>',
-           [u'宛先 <example%s@example.net>' % i],
+            u'件名',
+            u'本文',
+            u'差出人 <example-from@example.net>',
+            [u'宛先 <example%s@example.net>' % i],
         ) for i in range(10)))
-
 
     @mock.patch.object(mailer_api, 'mail_managers')
     def test_mail_managers(self, mail_managers):
-        mailer_tasks.mail_managers(
-           u'件名',
-           u'本文',
-           fail_silently=True,
+        mailer_tasks.mail_managers.delay(
+            u'件名',
+            u'本文',
+            fail_silently=True,
         )
 
         mail_managers.assert_called_once_with(
             u'件名',
-           u'本文',
-           fail_silently=True,
+            u'本文',
+            fail_silently=True,
         )
 
     @mock.patch.object(mailer_api, 'mail_managers_template')
     def test_mail_managers_template(self, mail_managers_template):
-        mailer_tasks.mail_managers_template(
-           u'mailer/mail.tpl',
+        mailer_tasks.mail_managers_template.delay(
+            u'mailer/mail.tpl',
             extra_context={
                 'subject': u'件名',
                 'body': u'本文',
             },
-           fail_silently=True,
+            fail_silently=True,
         )
 
         mail_managers_template.assert_called_once_with(
-           u'mailer/mail.tpl',
+            u'mailer/mail.tpl',
             extra_context={
                 'subject': u'件名',
                 'body': u'本文',
             },
-           fail_silently=True,
+            fail_silently=True,
         )
 
     @mock.patch.object(mailer_api, 'mail_admins')
     def test_mail_admins(self, mail_admins):
-        mailer_tasks.mail_admins(
-           u'件名',
-           u'本文',
-           fail_silently=True,
+        mailer_tasks.mail_admins.delay(
+            u'件名',
+            u'本文',
+            fail_silently=True,
         )
 
         mail_admins.assert_called_once_with(
             u'件名',
-           u'本文',
-           fail_silently=True,
+            u'本文',
+            fail_silently=True,
         )

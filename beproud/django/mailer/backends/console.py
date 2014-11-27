@@ -11,6 +11,7 @@ from beproud.django.mailer.backends.base import BaseEmailBackend
 
 logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
 
+
 class EmailBackend(BaseEmailBackend):
     def __init__(self, *args, **kwargs):
         self.stream = kwargs.pop('stream', sys.stdout)

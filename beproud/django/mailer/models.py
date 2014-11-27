@@ -1,23 +1,23 @@
-# vim:fileencoding=utf-8
+#:coding=utf-8:
 
 from django.conf import settings
 
 from email import charset
 from email.charset import (
     add_alias, add_charset, add_codec,
-    QP, BASE64, SHORTEST,
+    BASE64, SHORTEST,
 )
 
-__all__ = ('init_mailer')
+__all__ = ('init_mailer',)
+
 
 # Uppercase charset aliases cause inequality checks
 # with input and output encodings to fail thus causing
 # double encoding of base64 body text parts.
-_OldCharset = charset.Charset
-class SafeCharset(_OldCharset):
-    def __str__(self):
-        return self.input_charset
-charset.Charset = SafeCharset
+def _safe_str(self):
+    return self.input_charset
+charset.Charset.__str__ = _safe_str
+
 
 # Python charset => mail header charset mapping
 # TODO: Add more encodings
@@ -75,7 +75,7 @@ ALIASES = getattr(settings, "EMAIL_CHARSET_ALIASES", {
     "shiftjis": "SHIFT-JIS",
     "sjis": "SHIFT-JIS",
     "s_jis": "SHIFT-JIS",
-    
+
     #"shift_jis_2004": "SHIFT-JIS",
     #"shiftjis2004": "SHIFT-JIS",
     #"sjis_2004": "SHIFT-JIS",
@@ -118,6 +118,7 @@ CODECS = getattr(settings, "EMAIL_CHARSET_CODECS", {
     'UTF-8': 'utf-8',
     'SHIFT-JIS': 'cp932',
 })
+
 
 def init_mailer():
     if CHARSETS:

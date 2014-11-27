@@ -6,6 +6,7 @@ from django.core import mail
 
 from beproud.django.mailer.backends.base import BaseEmailBackend
 
+
 class EmailBackend(BaseEmailBackend):
     """A email backend for use during test sessions.
 

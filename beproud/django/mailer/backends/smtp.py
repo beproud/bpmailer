@@ -12,6 +12,7 @@ from beproud.django.mailer.backends.base import BaseEmailBackend
 
 logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
 
+
 class EmailBackend(BaseEmailBackend):
     """
     A wrapper that manages the SMTP network connection.
@@ -97,6 +98,8 @@ class EmailBackend(BaseEmailBackend):
 
     def _send_message(self, email_message):
         """A helper method that does the actual sending."""
-        self.connection.sendmail(email_message.from_email,
-                email_message.recipients(),
-                email_message.message().as_string())
+        self.connection.sendmail(
+            email_message.from_email,
+            email_message.recipients(),
+            email_message.message().as_string(),
+        )
