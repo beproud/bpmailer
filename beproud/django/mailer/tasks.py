@@ -4,7 +4,7 @@ from django.conf import settings
 try:
     from celery import shared_task
 except ImportError:
-    from celery.decorators import task as shared_task
+    from celery.task import task as shared_task
 
 from beproud.django.mailer import api as mailer_api
 
