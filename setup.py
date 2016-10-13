@@ -34,7 +34,7 @@ setup(
     description='Mailing utility for Django',
     author='BeProud Inc.',
     author_email='ian@beproud.jp',
-    url='https://project.beproud.jp/hg/bpmailer/',
+    url='https://github.com/beproud/bpmailer/',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Plugins',
