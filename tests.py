@@ -20,7 +20,6 @@ def main():
         'django.contrib.auth',
         'django.contrib.contenttypes',
         'beproud.django.mailer',
-        'djcelery',
     )
     global_settings.DATABASES = {
         'default': {

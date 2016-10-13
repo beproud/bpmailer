@@ -1,24 +1,10 @@
 #:coding=utf-8:
-
-try:
-    # NOTE: ちゃんと設定が読み込まれるようにdjceleryをインポートする
-    # TODO: Celery 3.1以上の場合 djcelery は必要ないので、その場合の対応をする
-    import djcelery  # NOQA
-except ImportError:
-    from django.core.exceptions import ImproperlyConfigured
-    raise ImproperlyConfigured("djcelery is required!")
-
 from django.conf import settings
 
 try:
-    from celery.task import task
+    from celery import shared_task
 except ImportError:
-    raise ImproperlyConfigured("bpmailer tasks require celery to be installed!")
-
-if 'djcelery' not in settings.INSTALLED_APPS:
-    from django.core.exceptions import ImproperlyConfigured
-    raise ImproperlyConfigured("djcelery not in INSTALLED_APPS!")
-
+    from celery.decorators import task as shared_task
 
 from beproud.django.mailer import api as mailer_api
 
@@ -32,7 +18,7 @@ __all__ = (
 )
 
 
-@task
+@shared_task
 def send_mail(*args, **kwargs):
     max_retries = kwargs.pop('max_retries', 3)
     retry_countdown = kwargs.pop('retry_countdown', 10)
@@ -46,7 +32,7 @@ def send_mail(*args, **kwargs):
         )
 
 
-@task
+@shared_task
 def send_template_mail(*args, **kwargs):
     max_retries = kwargs.pop('max_retries', 3)
     retry_countdown = kwargs.pop('retry_countdown', 10)
@@ -60,7 +46,7 @@ def send_template_mail(*args, **kwargs):
         )
 
 
-@task
+@shared_task
 def send_mass_mail(*args, **kwargs):
     max_retries = kwargs.pop('max_retries', 3)
     retry_countdown = kwargs.pop('retry_countdown', 10)
@@ -74,7 +60,7 @@ def send_mass_mail(*args, **kwargs):
         )
 
 
-@task
+@shared_task
 def mail_managers(*args, **kwargs):
     max_retries = kwargs.pop('max_retries', 3)
     retry_countdown = kwargs.pop('retry_countdown', 10)
@@ -88,7 +74,7 @@ def mail_managers(*args, **kwargs):
         )
 
 
-@task
+@shared_task
 def mail_managers_template(*args, **kwargs):
     max_retries = kwargs.pop('max_retries', 3)
     retry_countdown = kwargs.pop('retry_countdown', 10)
@@ -102,7 +88,7 @@ def mail_managers_template(*args, **kwargs):
         )
 
 
-@task
+@shared_task
 def mail_admins(*args, **kwargs):
     max_retries = kwargs.pop('max_retries', 3)
     retry_countdown = kwargs.pop('retry_countdown', 10)
