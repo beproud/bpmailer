@@ -6,6 +6,19 @@ try:
 except ImportError:
     from celery.task import task as shared_task
 
+import celery
+
+if celery.VERSION < (3, 1):
+    try:
+        import djcelery  # NOQA
+    except ImportError:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured("when used celery<3.1, djcelery is required!")
+
+    if 'djcelery' not in settings.INSTALLED_APPS:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured("djcelery not in INSTALLED_APPS!")
+
 from beproud.django.mailer import api as mailer_api
 
 __all__ = (
@@ -30,7 +43,6 @@ def send_mail(*args, **kwargs):
             countdown=retry_countdown,
             max_retries=max_retries,
         )
-
 
 @shared_task
 def send_template_mail(*args, **kwargs):
