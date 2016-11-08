@@ -28,6 +28,23 @@ def main():
         }
     }
 
+    if django.VERSION > (1, 8):
+        global_settings.TEMPLATES = [
+            {
+                'BACKEND': 'django.template.backends.django.DjangoTemplates',
+                'DIRS': [],
+                'APP_DIRS': True,
+                'OPTIONS': {
+                    'context_processors': [
+                        'django.template.context_processors.debug',
+                        'django.template.context_processors.request',
+                        'django.contrib.auth.context_processors.auth',
+                        'django.contrib.messages.context_processors.messages',
+                    ],
+                },
+            },
+        ]
+
     # For Celery Tests
     global_settings.CELERY_ALWAYS_EAGER = True
     global_settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
