@@ -14,6 +14,7 @@ env:
     - TOXENV=py26-django16
     - TOXENV=py27-django16
     - TOXENV=py27-django17
+    - TOXENV=py27-django18
     - TOXENV=py27-celery22
     - TOXENV=py27-celery30
 
