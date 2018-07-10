@@ -961,11 +961,11 @@ class AttachmentTestCase(MailTestCase, DjangoTestCase):
             u'本文',
             'example-from@example.net',
             ['example@example.net'],
-            attachments=[('test.txt', u"データ", None)],
+            attachments=[('test.txt', u"データ", 'text/plain')],
         )
 
         message = django_mail.outbox[0]
-        self.assertEquals(message.attachments, [('test.txt', u"データ", None)])
+        self.assertEquals(message.attachments, [('test.txt', u"データ", 'text/plain')])
 
     def test_send_template_mail(self):
         send_template_mail(
@@ -979,11 +979,11 @@ class AttachmentTestCase(MailTestCase, DjangoTestCase):
             },
             fail_silently=False,
             html_template_name=u'mailer/html_mail.tpl',
-            attachments=[('test.txt', u"データ", None)],
+            attachments=[('test.txt', u"データ", 'text/plain')],
         )
 
         message = django_mail.outbox[0]
-        self.assertEquals(message.attachments, [('test.txt', u"データ", None)])
+        self.assertEquals(message.attachments, [('test.txt', u"データ", 'text/plain')])
 
     def test_binary_attachment(self):
         message = EmailMessage(
