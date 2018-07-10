@@ -95,25 +95,6 @@ logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
 
 
 class EmailMessage(django_mail.EmailMessage):
-    def __init__(self, subject='', body='', from_email=None, to=None, bcc=None,
-                 connection=None, attachments=None, headers=None, cc=None):
-        super(EmailMessage, self).__init__(
-            subject=subject,
-            body=body,
-            from_email=from_email,
-            to=to,
-            cc=cc,
-            bcc=bcc,
-            connection=connection,
-            attachments=attachments,
-            headers=headers,
-        )
-
-    def get_connection(self, fail_silently=False):
-        if not self.connection:
-            self.connection = get_connection(fail_silently=fail_silently)
-        return self.connection
-
     def message(self):
         encoding = self.encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
         msg = SafeMIMEText(self.body, self.content_subtype, encoding)
