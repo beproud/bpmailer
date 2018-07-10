@@ -4,6 +4,7 @@ python: 2.7
 env:
   matrix:
     - TOXENV=py27-django18
+    - TOXENV=py27-django111
 
 install:
   - pip install tox
