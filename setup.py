@@ -47,8 +47,8 @@ setup(
     include_package_data=True,
     packages=find_packages(),
     namespace_packages=['beproud', 'beproud.django'],
-    install_requires=['Django>=1.2'],
-    tests_require=['celery>=2.2.7', 'mock>=0.7.2'],
+    install_requires=['Django>=1.8'],
+    tests_require=['celery>=4.1', 'mock>=0.7.2'],
     test_suite='tests.main',
     zip_safe=False,
 )

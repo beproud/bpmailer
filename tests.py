@@ -45,12 +45,12 @@ def main():
     ]
 
     # For Celery Tests
-    global_settings.CELERY_ALWAYS_EAGER = True
-    global_settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
+    global_settings.CELERY_TASK_ALWAYS_EAGER = True
+    global_settings.CELERY_TASK_EAGER_PROPAGATES = True
 
     import celery
     app = celery.Celery()
-    app.config_from_object('django.conf:settings')
+    app.config_from_object('django.conf:settings', namespace='CELERY')
     app.autodiscover_tasks(lambda: global_settings.INSTALLED_APPS)
 
     django.setup()
