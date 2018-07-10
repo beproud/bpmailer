@@ -7,7 +7,7 @@
 # http://www.eby-sarna.com/pipermail/peak/2010-May/003357.html)
 try:
     import multiprocessing  # NOQA
-except ImportError, e:
+except ImportError:
     pass
 
 import sys
@@ -21,7 +21,7 @@ try:
             sys.path.append(os.path.join(current_dir, fn))
 
     import billiard  # NOQA
-except ImportError, e:
+except ImportError:
     pass
 
 ############## End Hack ################
