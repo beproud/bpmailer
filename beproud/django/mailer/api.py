@@ -82,17 +82,13 @@ forbid_multi_line_headers = django_mail.forbid_multi_line_headers
 make_msgid = django_mail.make_msgid
 
 
-# NOTE: Django 1.6 以上の SafeMimeMessage
-if hasattr(django_mail, 'SafeMIMEMessage'):
-    SafeMIMEMessage = django_mail.SafeMIMEMessage
-else:
-    from email.mime.message import MIMEMessage
+from email.mime.message import MIMEMessage
 
-    class SafeMIMEMessage(MIMEMessage):
-        def __setitem__(self, name, val):
-            # message/rfc822 attachments must be ASCII
-            name, val = forbid_multi_line_headers(name, val, 'ascii')
-            MIMEMessage.__setitem__(self, name, val)
+class SafeMIMEMessage(MIMEMessage):
+    def __setitem__(self, name, val):
+        # message/rfc822 attachments must be ASCII
+        name, val = forbid_multi_line_headers(name, val, 'ascii')
+        MIMEMessage.__setitem__(self, name, val)
 
 
 logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
@@ -106,30 +102,17 @@ class EmailMessage(django_mail.EmailMessage):
             body=body,
             from_email=from_email,
             to=to,
+            cc=cc,
             bcc=bcc,
             connection=connection,
             attachments=attachments,
             headers=headers,
         )
-        # NOTE: Django 1.2 の場合の cc に対応
-        if cc:
-            assert not isinstance(cc, basestring), '"cc" argument must be a list or tuple'
-            self.cc = list(cc)
-        else:
-            self.cc = []
 
     def get_connection(self, fail_silently=False):
         if not self.connection:
             self.connection = get_connection(fail_silently=fail_silently)
         return self.connection
-
-    # NOTE: Django 1.2 の場合の cc に対応
-    def recipients(self):
-        """
-        Returns a list of all recipients of the email (includes direct
-        addressees as well as Cc and Bcc entries).
-        """
-        return self.to + self.cc + self.bcc
 
     def message(self):
         encoding = self.encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
