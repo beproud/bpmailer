@@ -11,6 +11,7 @@ from logging.handlers import BufferingHandler
 import mock
 
 from django.test import TestCase as DjangoTestCase
+from django.test import override_settings
 from django.core import mail as django_mail
 from django.conf import settings
 
@@ -62,87 +63,23 @@ class ErrorEmailBackend(BaseEmailBackend):
     def _send_message(self, email_message):
         raise EmailError(u"ERROR")
 
-AVAILABLE_SETTINGS = [
-    "EMAIL_CHARSET", "EMAIL_CHARSETS",
-    "EMAIL_CHARSET_ALIASES", "EMAIL_CHARSET_CODECS",
-    "EMAIL_ALL_FORWARD", "EMAIL_USE_LOCALTIME",
-    "EMAIL_BACKEND", "EMAIL_DEFAULT_CONTEXT",
-]
-
 
 class MailTestCase(object):
-    ADMINS = (('Admin', 'admin@example.net'),)
-    MANAGERS = (('Manager', 'manager@example.net'),)
-    TIME_ZONE = None
-    DEFAULT_CHARSET = None
-    DEBUG = None
-    EMAIL_CHARSET = None
-    EMAIL_CHARSETS = None
-    EMAIL_CHARSET_ALIASES = None
-    EMAIL_CHARSET_CODECS = None
-    EMAIL_ALL_FORWARD = None
-    EMAIL_USE_LOCALTIME = None
-    EMAIL_BACKEND = 'beproud.django.mailer.backends.locmem.EmailBackend'
-    EMAIL_DEFAULT_CONTEXT = {}
-
     def setUp(self):
-        self._old_email_CHARSETS = charset.CHARSETS
-        self._old_email_ALIASES = charset.ALIASES
-        self._old_email_CODEC_MAP = charset.ALIASES
-
-        self._old_ADMINS = settings.ADMINS
-        if self.ADMINS is not None:
-            settings.ADMINS = self.ADMINS
-        self._old_MANAGERS = settings.MANAGERS
-        if self.MANAGERS is not None:
-            settings.MANAGERS = self.MANAGERS
-        self._old_DEFAULT_CHARSET = settings.DEFAULT_CHARSET
-        if self.DEFAULT_CHARSET is not None:
-            settings.DEFAULT_CHARSET = self.DEFAULT_CHARSET
-        self._old_DEBUG = settings.DEBUG
-        if self.DEBUG is not None:
-            settings.DEBUG = self.DEBUG
-        self._old_TIME_ZONE = settings.TIME_ZONE
-        if self.TIME_ZONE is not None:
-            settings.TIME_ZONE = self.TIME_ZONE
-
         os.environ['TZ'] = settings.TIME_ZONE
         time.tzset()
-
-        for setting_name in AVAILABLE_SETTINGS:
-            setting_value = getattr(self, setting_name, None)
-            if setting_value:
-                setting_value = copy.deepcopy(setting_value)
-                setattr(self, "_old_"+setting_name, getattr(settings, setting_name, None))
-                setattr(settings, setting_name, setting_value)
         init_mailer()
 
     def tearDown(self):
         mail_pre_send.recievers = []
         mail_post_send.recievers = []
 
-        charset.CHARSETS = self._old_email_CHARSETS
-        charset.ALIASES = self._old_email_ALIASES
-        charset.ALIASES = self._old_email_CODEC_MAP
 
-        if self.DEFAULT_CHARSET != self._old_DEFAULT_CHARSET:
-            settings.DEFAULT_CHARSET = self._old_DEFAULT_CHARSET
-        if self.DEBUG != self._old_DEBUG:
-            settings.DEBUG = self._old_DEBUG
-        if self.TIME_ZONE != self._old_TIME_ZONE:
-            settings.TIME_ZONE = self._old_TIME_ZONE
-
-        for setting_name in AVAILABLE_SETTINGS:
-            old_setting_value = getattr(self, "_old_"+setting_name, None)
-            if old_setting_value is None:
-                if hasattr(settings, setting_name):
-                    delattr(settings._wrapped, setting_name)
-            else:
-                setattr(settings, setting_name, old_setting_value)
-
-
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf-8')
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class EncodingTestCaseUTF8(MailTestCase, DjangoTestCase):
-    DEFAULT_CHARSET = 'utf-8'
 
     def test_send_mail(self):
         send_mail(
@@ -213,9 +150,12 @@ class EncodingTestCaseUTF8(MailTestCase, DjangoTestCase):
         self.assertTrue(u'bcc@example.net' in django_mail.outbox[0].bcc)
 
 
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf-8')
+@override_settings(EMAIL_CHARSET='iso-2022-jp')
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
-    DEFAULT_CHARSET = 'utf-8'
-    EMAIL_CHARSET = 'iso-2022-jp'
     # TODO: Set ALIASES and CODECS
 
     def test_send_mail_encoding(self):
@@ -272,10 +212,13 @@ class EncodingTestCaseISO2022JP(MailTestCase, DjangoTestCase):
         self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
 
 
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf-8')
+@override_settings(DEBUG=True)
+@override_settings(EMAIL_ALL_FORWARD='all-forward@example.net')
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class EmailAllForwardTestCase(MailTestCase, DjangoTestCase):
-    DEBUG = True
-    EMAIL_ALL_FORWARD = "all-forward@example.net"
-
     def test_email_all_forward(self):
         send_mail(
             u'件名',
@@ -292,9 +235,13 @@ class EmailAllForwardTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['From']), 'all-forward@example.net')
 
 
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf-8')
+@override_settings(DEBUG=False)
+@override_settings(EMAIL_ALL_FORWARD='all-forward@example.net')
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class EmailAllForwardTestCase2(MailTestCase, DjangoTestCase):
-    DEBUG = False
-    EMAIL_ALL_FORWARD = "all-forward@example.net"
 
     def test_email_all_forward(self):
         send_mail(
@@ -312,8 +259,11 @@ class EmailAllForwardTestCase2(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['From']), 'example-from@example.net')
 
 
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf-8')
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class TemplateTestCase(MailTestCase, DjangoTestCase):
-    DEFAULT_CHARSET = 'utf-8'
     # TODO: Set ALIASES and CODECS
 
     def test_template_mail(self):
@@ -415,9 +365,12 @@ class TemplateTestCase(MailTestCase, DjangoTestCase):
         self.assertTrue(u'宛先 <example@example.net>' in django_mail.outbox[0].bcc)
 
 
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf-8')
+@override_settings(EMAIL_DEFAULT_CONTEXT={"subject": u"件名"})
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class TemplateContextTestCase(MailTestCase, DjangoTestCase):
-    DEFAULT_CHARSET = 'utf-8'
-    EMAIL_DEFAULT_CONTEXT = {"subject": u'件名'}
 
     def test_email_default_context(self):
         send_template_mail(
@@ -493,9 +446,11 @@ class TemplateContextTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['From']),
                           '=?UTF-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
 
-
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='iso-2022-jp')
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class DjangoMailISO2022JPTestCase(MailTestCase, DjangoTestCase):
-    DEFAULT_CHARSET = 'iso-2022-jp'
 
     def test_send_mail(self):
         django_mail.send_mail(
@@ -517,10 +472,13 @@ class DjangoMailISO2022JPTestCase(MailTestCase, DjangoTestCase):
         self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
 
 
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf-8')
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class DjangoMailUTF8TestCase(MailTestCase, DjangoTestCase):
     # NOTE: Django の場合は "utf-8" に一致にしないと
     #       Content-Transfer-Encodingがbase64になる
-    DEFAULT_CHARSET = 'utf-8'
 
     def test_send_mail(self):
         django_mail.send_mail(
@@ -541,9 +499,12 @@ class DjangoMailUTF8TestCase(MailTestCase, DjangoTestCase):
         self.assertEqual(message.get_payload(), "5pys5paH\n")
 
 
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf-8')
+@override_settings(EMAIL_CHARSET='iso-2022-jp')
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class SignalTest(MailTestCase, DjangoTestCase):
-    DEFAULT_CHARSET = 'utf8'
-    EMAIL_CHARSET = 'iso-2022-jp'
 
     def test_pre_send_signal(self):
         def pre_send_signal(sender, message, **kwargs):
@@ -591,8 +552,11 @@ class SignalTest(MailTestCase, DjangoTestCase):
         self.assertTrue(test_list, ["arrived"])
 
 
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf8')
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class MassMailTest(MailTestCase, DjangoTestCase):
-    DEFAULT_CHARSET = 'utf8'
 
     def test_mass_mail(self):
         send_mass_mail(((
@@ -832,10 +796,14 @@ class MassMailTest(MailTestCase, DjangoTestCase):
             self.assertEqual(message.get_payload(), "5pys5paH\n")
 
 
+
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf-8')
+@override_settings(TIME_ZONE='Asia/Tokyo')
+@override_settings(EMAIL_USE_LOCALTIME=False)
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class UTCTimeTestCase(MailTestCase, DjangoTestCase):
-    DEFAULT_CHARSET = 'utf-8'
-    TIME_ZONE = 'Asia/Tokyo'
-    EMAIL_USE_LOCALTIME = False
 
     def test_email_utc_strict(self):
         send_mail(
@@ -849,10 +817,13 @@ class UTCTimeTestCase(MailTestCase, DjangoTestCase):
         self.assertTrue(message['Date'].endswith("-0000"))
 
 
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf8')
+@override_settings(TIME_ZONE='Asia/Tokyo')
+@override_settings(EMAIL_USE_LOCALTIME=True)
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class LocalTimeTestCase(MailTestCase, DjangoTestCase):
-    DEFAULT_CHARSET = 'utf-8'
-    TIME_ZONE = 'Asia/Tokyo'
-    EMAIL_USE_LOCALTIME = True
 
     def test_email_localtime_strict(self):
         send_mail(
@@ -866,8 +837,11 @@ class LocalTimeTestCase(MailTestCase, DjangoTestCase):
         self.assertTrue(message['Date'].endswith("+0900"))
 
 
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf8')
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.tests.ErrorEmailBackend')
 class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
-    EMAIL_BACKEND = 'beproud.django.mailer.tests.ErrorEmailBackend'
 
     def test_fail_silently(self):
         send_mail(
@@ -975,6 +949,10 @@ class FailSilentlyTestCase(MailTestCase, DjangoTestCase):
             pass
 
 
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf8')
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class AttachmentTestCase(MailTestCase, DjangoTestCase):
 
     def test_send_mail(self):
@@ -1033,6 +1011,10 @@ class AttachmentTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(payloads[0].get_payload(), "44OH44O844K/\n")
 
 
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf8')
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class HtmlMailTestCase(MailTestCase, DjangoTestCase):
 
     def test_send_mail_html(self):
@@ -1105,6 +1087,11 @@ class HtmlMailTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(payloads[1]['Content-Type'], 'text/html; charset="UTF-8"')
         self.assertEquals(payloads[1].get_payload(), "PGgxPuacrOaWhzwvaDE+Cg==\n")
 
+
+@override_settings(ADMINS=(('Admin', 'admin@example.net'),))
+@override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
+@override_settings(DEFAULT_CHARSET='utf8')
+@override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class TaskTests(MailTestCase, DjangoTestCase):
 
     @mock.patch.object(mailer_api, 'send_mail')

@@ -4,4 +4,4 @@
 
 * Python (2.7)
 * Celery (4.1)
-* Django (1.8)
+* Django (1.8, 1.11)
