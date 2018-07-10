@@ -50,12 +50,9 @@ def main():
     global_settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
     import celery
-    if celery.VERSION >= (3, 1):
-        app = celery.Celery()
-        app.config_from_object('django.conf:settings')
-        app.autodiscover_tasks(lambda: global_settings.INSTALLED_APPS)
-    else:
-        global_settings.INSTALLED_APPS += ('djcelery',)
+    app = celery.Celery()
+    app.config_from_object('django.conf:settings')
+    app.autodiscover_tasks(lambda: global_settings.INSTALLED_APPS)
 
     if django.VERSION > (1, 7):
         django.setup()
