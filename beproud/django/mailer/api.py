@@ -50,59 +50,23 @@ if not getattr(settings, "EMAIL_USE_BASE64_FOR_UTF8", True):
     # some spam filters.
     utf8_charset.body_encoding = None
 
-if django.VERSION > (1, 6):
-    _old_safemimetext = django_mail.SafeMIMEText
+_old_safemimetext = django_mail.SafeMIMEText
 
-    class SafeMIMEText(_old_safemimetext):
-        def __init__(self, text, subtype, charset):
-            self.encoding = charset
-            # NOTE: utf8 でも utf-8 でも対応する
-            if charset.upper().replace("-", "") == 'UTF8':
-                # Unfortunately, Python doesn't support setting a Charset instance
-                # as MIMEText init parameter (http://bugs.python.org/issue16324).
-                # We do it manually and trigger re-encoding of the payload.
-                MIMEText.__init__(self, text, subtype, None)
-                del self['Content-Transfer-Encoding']
-                self.set_payload(text, utf8_charset)
-                self.replace_header('Content-Type', 'text/%s; charset="%s"'
-                                    % (subtype, utf8_charset.get_output_charset()))
-            else:
-                MIMEText.__init__(self, text, subtype, charset)
-else:
-    class SafeMIMEText(MIMEText):
-
-        def __init__(self, text, subtype, charset):
-            self.encoding = charset
-            if charset.upper().replace("-", "") == 'UTF8':
-                # Unfortunately, Python doesn't support setting a Charset instance
-                # as MIMEText init parameter (http://bugs.python.org/issue16324).
-                # We do it manually and trigger re-encoding of the payload.
-                MIMEText.__init__(self, text, subtype, None)
-                del self['Content-Transfer-Encoding']
-                self.set_payload(text, utf8_charset)
-                self.replace_header('Content-Type', 'text/%s; charset="%s"'
-                                    % (subtype, utf8_charset.get_output_charset()))
-            else:
-                MIMEText.__init__(self, text, subtype, charset)
-
-        def __setitem__(self, name, val):
-            name, val = forbid_multi_line_headers(name, val, self.encoding)
-            MIMEText.__setitem__(self, name, val)
-
-        def as_string(self, unixfrom=False, linesep='\n'):
-            """Return the entire formatted message as a string.
-            Optional `unixfrom' when True, means include the Unix From_ envelope
-            header.
-
-            This overrides the default as_string() implementation to not mangle
-            lines that begin with 'From '. See bug #13433 for details.
-            """
-            fp = StringIO()
-            g = generator.Generator(fp, mangle_from_=False)
-            g.flatten(self, unixfrom=unixfrom)
-            return fp.getvalue()
-
-        as_bytes = as_string
+class SafeMIMEText(_old_safemimetext):
+    def __init__(self, text, subtype, charset):
+        self.encoding = charset
+        # NOTE: utf8 でも utf-8 でも対応する
+        if charset.upper().replace("-", "") == 'UTF8':
+            # Unfortunately, Python doesn't support setting a Charset instance
+            # as MIMEText init parameter (http://bugs.python.org/issue16324).
+            # We do it manually and trigger re-encoding of the payload.
+            MIMEText.__init__(self, text, subtype, None)
+            del self['Content-Transfer-Encoding']
+            self.set_payload(text, utf8_charset)
+            self.replace_header('Content-Type', 'text/%s; charset="%s"'
+                                % (subtype, utf8_charset.get_output_charset()))
+        else:
+            MIMEText.__init__(self, text, subtype, charset)
 
 django_mail.SafeMIMEText = SafeMIMEText
 try:
@@ -117,11 +81,6 @@ get_connection = django_mail.get_connection
 forbid_multi_line_headers = django_mail.forbid_multi_line_headers
 make_msgid = django_mail.make_msgid
 
-# NOTE: Django 1.4 では、SMTPConnectionはもうないので、
-#       なかったらスルーする
-if hasattr(django_mail, 'SMTPConnection'):
-    SMTPConnection = django_mail.SMTPConnection
-    __all__ = __all__ + ('SMTPConnection',)
 
 # NOTE: Django 1.6 以上の SafeMimeMessage
 if hasattr(django_mail, 'SafeMIMEMessage'):
