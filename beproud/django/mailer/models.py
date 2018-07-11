@@ -15,9 +15,10 @@ __all__ = ('init_mailer',)
 # Uppercase charset aliases cause inequality checks
 # with input and output encodings to fail thus causing
 # double encoding of base64 body text parts.
-def _safe_str(self):
-    return self.input_charset
-charset.Charset.__str__ = _safe_str
+if six.PY2:
+    def _safe_str(self):
+        return self.input_charset
+    charset.Charset.__str__ = _safe_str
 
 
 # Python charset => mail header charset mapping
