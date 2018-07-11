@@ -24,7 +24,7 @@ def send_mail(*args, **kwargs):
     retry_countdown = kwargs.pop('retry_countdown', 10)
     try:
         mailer_api.send_mail(*args, **kwargs)
-    except Exception, e:
+    except Exception as e:
         return send_mail.retry(
             exc=e,
             countdown=retry_countdown,
@@ -37,7 +37,7 @@ def send_template_mail(*args, **kwargs):
     retry_countdown = kwargs.pop('retry_countdown', 10)
     try:
         mailer_api.send_template_mail(*args, **kwargs)
-    except Exception, e:
+    except Exception as e:
         return send_template_mail.retry(
             exc=e,
             countdown=retry_countdown,
@@ -51,7 +51,7 @@ def send_mass_mail(*args, **kwargs):
     retry_countdown = kwargs.pop('retry_countdown', 10)
     try:
         mailer_api.send_mass_mail(*args, **kwargs)
-    except Exception, e:
+    except Exception as e:
         return send_mass_mail.retry(
             exc=e,
             countdown=retry_countdown,
@@ -65,7 +65,7 @@ def mail_managers(*args, **kwargs):
     retry_countdown = kwargs.pop('retry_countdown', 10)
     try:
         mailer_api.mail_managers(*args, **kwargs)
-    except Exception, e:
+    except Exception as e:
         return mail_managers.retry(
             exc=e,
             countdown=retry_countdown,
@@ -79,7 +79,7 @@ def mail_managers_template(*args, **kwargs):
     retry_countdown = kwargs.pop('retry_countdown', 10)
     try:
         mailer_api.mail_managers_template(*args, **kwargs)
-    except Exception, e:
+    except Exception as e:
         return mail_managers_template.retry(
             exc=e,
             countdown=retry_countdown,
@@ -93,7 +93,7 @@ def mail_admins(*args, **kwargs):
     retry_countdown = kwargs.pop('retry_countdown', 10)
     try:
         mailer_api.mail_admins(*args, **kwargs)
-    except Exception, e:
+    except Exception as e:
         return mail_admins.retry(
             exc=e,
             countdown=retry_countdown,

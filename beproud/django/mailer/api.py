@@ -1,13 +1,16 @@
 #:coding=utf-8:
-
 import sys
 import traceback
 import logging
-from StringIO import StringIO
+import six
 
-from email import Encoders, charset, generator, message_from_string
-from email.Utils import formatdate
-from email.MIMEBase import MIMEBase
+StringIO = six.StringIO
+
+from email import encoders, charset, generator, message_from_string
+from email.utils import formatdate
+from six.moves import email_mime_base
+MIMEBase = email_mime_base.MIMEBase
+
 from email.mime.text import MIMEText
 from email.message import Message
 
@@ -146,7 +149,7 @@ class EmailMessage(django_mail.EmailMessage):
             # Encode non-text attachments with base64.
             attachment = MIMEBase(basetype, subtype)
             attachment.set_payload(content)
-            Encoders.encode_base64(attachment)
+            encoders.encode_base64(attachment)
         return attachment
 
     def send(self, *args, **kwargs):

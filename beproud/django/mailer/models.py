@@ -1,4 +1,5 @@
 #:coding=utf-8:
+import six
 
 from django.conf import settings
 
@@ -122,15 +123,15 @@ CODECS = getattr(settings, "EMAIL_CHARSET_CODECS", {
 
 def init_mailer():
     if CHARSETS:
-        for canonical, charset_dict in CHARSETS.iteritems():
+        for canonical, charset_dict in six.iteritems(CHARSETS):
             add_charset(canonical, **charset_dict)
 
     if ALIASES:
-        for alias, canonical in ALIASES.iteritems():
+        for alias, canonical in six.iteritems(ALIASES):
             add_alias(alias, canonical)
 
     if CODECS:
-        for canonical, codec_name in CODECS.iteritems():
+        for canonical, codec_name in six.iteritems(CODECS):
             add_codec(canonical, codec_name)
 
 init_mailer()
