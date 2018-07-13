@@ -24,32 +24,32 @@ if six.PY2:
 # Python charset => mail header charset mapping
 # TODO: Add more encodings
 CHARSETS = getattr(settings, "EMAIL_CHARSETS", {
-    'UTF-8': {
+    'utf-8': {
         'header_enc': SHORTEST,
         'body_enc': BASE64,
         'output_charset': None,
     },
-    'SHIFT-JIS': {
+    'shift-jis': {
         'header_enc': BASE64,
         'body_enc': None,
         'output_charset': None,
     },
-    'ISO-2022-JP': {
+    'iso-2022-jp': {
         'header_enc': BASE64,
         'body_enc': None,
         'output_charset': None,
     },
-    'ISO-2022-JP-2': {
+    'iso-2022-jp-2': {
         'header_enc': BASE64,
         'body_enc': None,
         'output_charset': None,
     },
-    'ISO-2022-JP-3': {
+    'iso-2022-jp-3': {
         'header_enc': BASE64,
         'body_enc': None,
         'output_charset': None,
     },
-    'ISO-2022-JP-EXT': {
+    'iso-2022-jp-ext': {
         'header_enc': BASE64,
         'body_enc': None,
         'output_charset': None,
@@ -57,68 +57,68 @@ CHARSETS = getattr(settings, "EMAIL_CHARSETS", {
 })
 
 ALIASES = getattr(settings, "EMAIL_CHARSET_ALIASES", {
-    # UTF-8
-    "utf8": "UTF-8",
-    "utf_8": "UTF-8",
-    "U8": "UTF-8",
-    "UTF": "UTF-8",
-    "utf8": "UTF-8",
-    "utf-8": "UTF-8",
+    # utf-8
+    "utf8": "utf-8",
+    "utf_8": "utf-8",
+    "U8": "utf-8",
+    "UTF": "utf-8",
+    "utf8": "utf-8",
+    "utf-8": "utf-8",
 
     # Shift-JIS
-    "cp932": "SHIFT-JIS",
-    "932": "SHIFT-JIS",
-    "ms932": "SHIFT-JIS",
-    "mskanji": "SHIFT-JIS",
-    "ms-kanji": "SHIFT-JIS",
+    "cp932": "shift-jis",
+    "932": "shift-jis",
+    "ms932": "shift-jis",
+    "mskanji": "shift-jis",
+    "ms-kanji": "shift-jis",
 
-    "shift_jis": "SHIFT-JIS",
-    "csshiftjis": "SHIFT-JIS",
-    "shiftjis": "SHIFT-JIS",
-    "sjis": "SHIFT-JIS",
-    "s_jis": "SHIFT-JIS",
+    "shift_jis": "shift-jis",
+    "csshiftjis": "shift-jis",
+    "shiftjis": "shift-jis",
+    "sjis": "shift-jis",
+    "s_jis": "shift-jis",
 
-    #"shift_jis_2004": "SHIFT-JIS",
-    #"shiftjis2004": "SHIFT-JIS",
-    #"sjis_2004": "SHIFT-JIS",
-    #"sjis2004": "SHIFT-JIS",
+    #"shift_jis_2004": "shift-jis",
+    #"shiftjis2004": "shift-jis",
+    #"sjis_2004": "shift-jis",
+    #"sjis2004": "shift-jis",
     #
-    #"shift_jisx0213": "SHIFT-JIS",
-    #"shiftjisx0213": "SHIFT-JIS",
-    #"sjisx0213": "SHIFT-JIS",
-    #"s_jisx0213": "SHIFT-JIS",
+    #"shift_jisx0213": "shift-jis",
+    #"shiftjisx0213": "shift-jis",
+    #"sjisx0213": "shift-jis",
+    #"s_jisx0213": "shift-jis",
 
     # ISO-2022-JP
-    "iso2022_jp": "ISO-2022-JP",
-    "scsiso2022jp": "ISO-2022-JP",
-    "iso2022jp": "ISO-2022-JP",
-    "iso-2022-jp": "ISO-2022-JP",
-    "iso-2022-jp": "ISO-2022-JP",
-    "iso-2022-jp-1": "ISO-2022-JP",
+    "iso2022_jp": "iso-2022-jp",
+    "scsiso2022jp": "iso-2022-jp",
+    "iso2022jp": "iso-2022-jp",
+    "iso-2022-jp": "iso-2022-jp",
+    "iso-2022-jp": "iso-2022-jp",
+    "iso-2022-jp-1": "iso-2022-jp",
 
-    "iso-2022-jp-2": "ISO-2022-JP-2",
-    "iso2022_jp_2": "ISO-2022-JP-2",
-    "iso2022jp-2": "ISO-2022-JP-2",
-    "iso2022_jp_2004": "ISO-2022-JP-2",
-    "iso2022jp-2004": "ISO-2022-JP-2",
-    "iso-2022-jp-2004": "ISO-2022-JP-2",
+    "iso-2022-jp-2": "iso-2022-jp-2",
+    "iso2022_jp_2": "iso-2022-jp-2",
+    "iso2022jp-2": "iso-2022-jp-2",
+    "iso2022_jp_2004": "iso-2022-jp-2",
+    "iso2022jp-2004": "iso-2022-jp-2",
+    "iso-2022-jp-2004": "iso-2022-jp-2",
 
-    "iso2022_jp_3": "ISO-2022-JP-3",
-    "iso2022jp-3": "ISO-2022-JP-3",
-    "iso-2022-jp-3": "ISO-2022-JP-3",
+    "iso2022_jp_3": "iso-2022-jp-3",
+    "iso2022jp-3": "iso-2022-jp-3",
+    "iso-2022-jp-3": "iso-2022-jp-3",
 
     # TODO: 携帯は対応してないと
-    "iso2022_jp_ext": "ISO-2022-JP-EXT",
-    "iso2022jp-ext": "ISO-2022-JP-EXT",
-    "iso-2022-jp-ext": "ISO-2022-JP-EXT",
+    "iso2022_jp_ext": "iso-2022-jp-ext",
+    "iso2022jp-ext": "iso-2022-jp-ext",
+    "iso-2022-jp-ext": "iso-2022-jp-ext",
 })
 CODECS = getattr(settings, "EMAIL_CHARSET_CODECS", {
-    'ISO-2022-JP': 'iso-2022-jp',
-    'ISO-2022-JP-2': 'iso-2022-jp-2',
-    'ISO-2022-JP-3': 'iso-2022-jp-3',
-    'ISO-2022-JP-EXT': 'iso2022jp-ext',
-    'UTF-8': 'utf-8',
-    'SHIFT-JIS': 'cp932',
+    'iso-2022-jp': 'iso-2022-jp',
+    'iso-2022-jp-2': 'iso-2022-jp-2',
+    'iso-2022-jp-3': 'iso-2022-jp-3',
+    'iso-2022-jp-ext': 'iso2022jp-ext',
+    'utf-8': 'utf-8',
+    'shift-jis': 'cp932',
 })
 
 
