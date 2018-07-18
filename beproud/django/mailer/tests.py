@@ -9,6 +9,7 @@ from itertools import chain
 from logging.handlers import BufferingHandler
 
 import mock
+import six
 
 from django.test import TestCase as DjangoTestCase
 from django.test import override_settings
@@ -112,7 +113,10 @@ class EncodingTestCaseUTF8(MailTestCase, DjangoTestCase):
                          "=?utf-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], '8bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="utf-8"')
-        self.assertEqual(message.get_payload(), "5pys5paH\n")
+        if six.PY2:
+            self.assertEqual(message.get_payload(decode=True), "\xe6\x9c\xac\xe6\x96\x87")
+        elif six.PY3:
+            self.assertEqual(message.get_payload(decode=True), b"\xe6\x9c\xac\xe6\x96\x87")
 
     def test_cc(self):
         send_mail(
@@ -493,7 +497,10 @@ class DjangoMailUTF8TestCase(MailTestCase, DjangoTestCase):
                          "=?utf-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], '8bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="utf-8"')
-        self.assertEqual(message.get_payload(), "5pys5paH\n")
+        if six.PY2:
+            self.assertEqual(message.get_payload(decode=True), "\xe6\x9c\xac\xe6\x96\x87")
+        elif six.PY3:
+            self.assertEqual(message.get_payload(decode=True), b"\xe6\x9c\xac\xe6\x96\x87")
 
 
 @override_settings(ADMINS=(('Admin', 'admin@example.net'),))
@@ -573,7 +580,11 @@ class MassMailTest(MailTestCase, DjangoTestCase):
                              "=?utf-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
             self.assertEqual(message['Content-Transfer-Encoding'], '8bit')
             self.assertEqual(message['Content-Type'], 'text/plain; charset="utf-8"')
-            self.assertEqual(message.get_payload(), "5pys5paH\n")
+            if six.PY2:
+                self.assertEqual(message.get_payload(decode=True), "\xe6\x9c\xac\xe6\x96\x87")
+            elif six.PY3:
+                self.assertEqual(message.get_payload(decode=True), b"\xe6\x9c\xac\xe6\x96\x87")
+                
 
     def test_mass_mail_encoding(self):
         send_mass_mail(((
@@ -637,7 +648,10 @@ class MassMailTest(MailTestCase, DjangoTestCase):
                          "=?utf-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
         self.assertEqual(message['Content-Transfer-Encoding'], '8bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="utf-8"')
-        self.assertEqual(message.get_payload(), "5pys5paH\n")
+        if six.PY2:
+            self.assertEqual(message.get_payload(decode=True), "\xe6\x9c\xac\xe6\x96\x87")
+        elif six.PY3:
+            self.assertEqual(message.get_payload(decode=True), b"\xe6\x9c\xac\xe6\x96\x87")
 
         message = django_mail.outbox[2].message()
         self.assertEqual(str(message['Subject']), "=?iso-2022-jp?b?GyRCN29MPhsoQg==?=")
@@ -790,7 +804,10 @@ class MassMailTest(MailTestCase, DjangoTestCase):
                              "=?utf-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
             self.assertEqual(message['Content-Transfer-Encoding'], '8bit')
             self.assertEqual(message['Content-Type'], 'text/plain; charset="utf-8"')
-            self.assertEqual(message.get_payload(), "5pys5paH\n")
+            if six.PY2:
+                self.assertEqual(message.get_payload(decode=True), "\xe6\x9c\xac\xe6\x96\x87")
+            elif six.PY3:
+                self.assertEqual(message.get_payload(decode=True), b"\xe6\x9c\xac\xe6\x96\x87")
 
 
 
@@ -1005,7 +1022,10 @@ class AttachmentTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(payloads[0]['Content-Transfer-Encoding'], '8bit')
         self.assertEquals(payloads[0]['Content-Type'], 'text/plain; charset="utf-8"')
         self.assertEquals(payloads[0]['Content-Disposition'], 'attachment; filename="test.txt"')
-        self.assertEquals(payloads[0].get_payload(), "44OH44O844K/\n")
+        if six.PY2:
+            self.assertEquals(payloads[0].get_payload(decode=True), "\xe3\x83\x87\xe3\x83\xbc\xe3\x82\xbf")
+        elif six.PY3:
+            self.assertEquals(payloads[0].get_payload(decode=True), b"\xe3\x83\x87\xe3\x83\xbc\xe3\x82\xbf")
 
 
 @override_settings(ADMINS=(('Admin', 'admin@example.net'),))
@@ -1041,10 +1061,16 @@ class HtmlMailTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(len(payloads), 2)
         self.assertEquals(payloads[0]['Content-Transfer-Encoding'], '8bit')
         self.assertEquals(payloads[0]['Content-Type'], 'text/plain; charset="utf-8"')
-        self.assertEquals(payloads[0].get_payload(), "5pys5paH\n")
+        if six.PY2:
+            self.assertEquals(payloads[0].get_payload(decode=True), "\xe6\x9c\xac\xe6\x96\x87")
+        elif six.PY3:
+            self.assertEquals(payloads[0].get_payload(decode=True), b"\xe6\x9c\xac\xe6\x96\x87")
         self.assertEquals(payloads[1]['Content-Transfer-Encoding'], '8bit')
         self.assertEquals(payloads[1]['Content-Type'], 'text/html; charset="utf-8"')
-        self.assertEquals(payloads[1].get_payload(), "PGgxPuacrOaWhzwvaDE+\n")
+        if six.PY2:
+            self.assertEquals(payloads[1].get_payload(decode=True), "<h1>\xe6\x9c\xac\xe6\x96\x87</h1>")
+        elif six.PY3:
+            self.assertEquals(payloads[1].get_payload(decode=True), b"<h1>\xe6\x9c\xac\xe6\x96\x87</h1>")
 
     def test_html_template_mail(self):
         send_template_mail(
@@ -1079,10 +1105,16 @@ class HtmlMailTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(len(payloads), 2)
         self.assertEquals(payloads[0]['Content-Transfer-Encoding'], '8bit')
         self.assertEquals(payloads[0]['Content-Type'], 'text/plain; charset="utf-8"')
-        self.assertEquals(payloads[0].get_payload(), "5pys5paHCg==\n")
+        if six.PY2:
+            self.assertEquals(payloads[0].get_payload(decode=True), "\xe6\x9c\xac\xe6\x96\x87\n")
+        elif six.PY3:
+            self.assertEquals(payloads[0].get_payload(decode=True), b"\xe6\x9c\xac\xe6\x96\x87\n")
         self.assertEquals(payloads[1]['Content-Transfer-Encoding'], '8bit')
         self.assertEquals(payloads[1]['Content-Type'], 'text/html; charset="utf-8"')
-        self.assertEquals(payloads[1].get_payload(), "PGgxPuacrOaWhzwvaDE+Cg==\n")
+        if six.PY2:
+            self.assertEquals(payloads[1].get_payload(decode=True), "<h1>\xe6\x9c\xac\xe6\x96\x87</h1>\n")
+        elif six.PY3:
+            self.assertEquals(payloads[1].get_payload(decode=True), b"<h1>\xe6\x9c\xac\xe6\x96\x87</h1>\n")
 
 
 @override_settings(ADMINS=(('Admin', 'admin@example.net'),))
