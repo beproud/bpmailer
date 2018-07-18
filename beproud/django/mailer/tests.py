@@ -110,7 +110,7 @@ class EncodingTestCaseUTF8(MailTestCase, DjangoTestCase):
         self.assertEqual(str(message['To']), "=?utf-8?b?5a6b5YWI?= <example@example.net>")
         self.assertEqual(str(message['From']),
                          "=?utf-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
-        self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
+        self.assertEqual(message['Content-Transfer-Encoding'], '8bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="utf-8"')
         self.assertEqual(message.get_payload(), "5pys5paH\n")
 
@@ -477,9 +477,6 @@ class DjangoMailISO2022JPTestCase(MailTestCase, DjangoTestCase):
 @override_settings(DEFAULT_CHARSET='utf-8')
 @override_settings(EMAIL_BACKEND='beproud.django.mailer.backends.locmem.EmailBackend')
 class DjangoMailUTF8TestCase(MailTestCase, DjangoTestCase):
-    # NOTE: Django の場合は "utf-8" に一致にしないと
-    #       Content-Transfer-Encodingがbase64になる
-
     def test_send_mail(self):
         django_mail.send_mail(
             u'件名',
@@ -494,7 +491,7 @@ class DjangoMailUTF8TestCase(MailTestCase, DjangoTestCase):
         self.assertEqual(str(message['To']), "=?utf-8?b?5a6b5YWI?= <example@example.net>")
         self.assertEqual(str(message['From']),
                          "=?utf-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
-        self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
+        self.assertEqual(message['Content-Transfer-Encoding'], '8bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="utf-8"')
         self.assertEqual(message.get_payload(), "5pys5paH\n")
 
@@ -574,7 +571,7 @@ class MassMailTest(MailTestCase, DjangoTestCase):
                              "=?utf-8?b?5a6b5YWI?= <example%s@example.net>" % i)
             self.assertEqual(str(message['From']),
                              "=?utf-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
-            self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
+            self.assertEqual(message['Content-Transfer-Encoding'], '8bit')
             self.assertEqual(message['Content-Type'], 'text/plain; charset="utf-8"')
             self.assertEqual(message.get_payload(), "5pys5paH\n")
 
@@ -638,7 +635,7 @@ class MassMailTest(MailTestCase, DjangoTestCase):
         self.assertEqual(str(message['To']), "=?utf-8?b?5a6b5YWI?= <example1@example.net>")
         self.assertEqual(str(message['From']),
                          "=?utf-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
-        self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
+        self.assertEqual(message['Content-Transfer-Encoding'], '8bit')
         self.assertEqual(message['Content-Type'], 'text/plain; charset="utf-8"')
         self.assertEqual(message.get_payload(), "5pys5paH\n")
 
@@ -791,7 +788,7 @@ class MassMailTest(MailTestCase, DjangoTestCase):
                              "=?utf-8?b?5a6b5YWI?= <example%s@example.net>" % i)
             self.assertEqual(str(message['From']),
                              "=?utf-8?b?5beu5Ye65Lq6?= <example-from@example.net>")
-            self.assertEqual(message['Content-Transfer-Encoding'], 'base64')
+            self.assertEqual(message['Content-Transfer-Encoding'], '8bit')
             self.assertEqual(message['Content-Type'], 'text/plain; charset="utf-8"')
             self.assertEqual(message.get_payload(), "5pys5paH\n")
 
@@ -1005,7 +1002,7 @@ class AttachmentTestCase(MailTestCase, DjangoTestCase):
 
         # 添付ファイルのペイロード
         self.assertEquals(len(payloads), 1)
-        self.assertEquals(payloads[0]['Content-Transfer-Encoding'], 'base64')
+        self.assertEquals(payloads[0]['Content-Transfer-Encoding'], '8bit')
         self.assertEquals(payloads[0]['Content-Type'], 'text/plain; charset="utf-8"')
         self.assertEquals(payloads[0]['Content-Disposition'], 'attachment; filename="test.txt"')
         self.assertEquals(payloads[0].get_payload(), "44OH44O844K/\n")
@@ -1042,10 +1039,10 @@ class HtmlMailTestCase(MailTestCase, DjangoTestCase):
 
         # text + html ペイロード
         self.assertEquals(len(payloads), 2)
-        self.assertEquals(payloads[0]['Content-Transfer-Encoding'], 'base64')
+        self.assertEquals(payloads[0]['Content-Transfer-Encoding'], '8bit')
         self.assertEquals(payloads[0]['Content-Type'], 'text/plain; charset="utf-8"')
         self.assertEquals(payloads[0].get_payload(), "5pys5paH\n")
-        self.assertEquals(payloads[1]['Content-Transfer-Encoding'], 'base64')
+        self.assertEquals(payloads[1]['Content-Transfer-Encoding'], '8bit')
         self.assertEquals(payloads[1]['Content-Type'], 'text/html; charset="utf-8"')
         self.assertEquals(payloads[1].get_payload(), "PGgxPuacrOaWhzwvaDE+\n")
 
@@ -1080,10 +1077,10 @@ class HtmlMailTestCase(MailTestCase, DjangoTestCase):
 
         # text + html ペイロード
         self.assertEquals(len(payloads), 2)
-        self.assertEquals(payloads[0]['Content-Transfer-Encoding'], 'base64')
+        self.assertEquals(payloads[0]['Content-Transfer-Encoding'], '8bit')
         self.assertEquals(payloads[0]['Content-Type'], 'text/plain; charset="utf-8"')
         self.assertEquals(payloads[0].get_payload(), "5pys5paHCg==\n")
-        self.assertEquals(payloads[1]['Content-Transfer-Encoding'], 'base64')
+        self.assertEquals(payloads[1]['Content-Transfer-Encoding'], '8bit')
         self.assertEquals(payloads[1]['Content-Type'], 'text/html; charset="utf-8"')
         self.assertEquals(payloads[1].get_payload(), "PGgxPuacrOaWhzwvaDE+Cg==\n")
 
