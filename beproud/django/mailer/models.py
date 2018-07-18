@@ -26,7 +26,7 @@ if six.PY2:
 CHARSETS = getattr(settings, "EMAIL_CHARSETS", {
     'utf-8': {
         'header_enc': SHORTEST,
-        'body_enc': BASE64,
+        'body_enc': None,
         'output_charset': None,
     },
     'shift-jis': {

@@ -45,7 +45,7 @@ __all__ = (
     'BadHeaderError',
 )
 
-utf8_charset = charset.Charset('UTF-8')
+utf8_charset = charset.Charset('utf-8')
 
 # ガラケの場合は base64 じゃないとダメなやつが多いので、デフォルトで BASE64を使う。
 if not getattr(settings, "EMAIL_USE_BASE64_FOR_UTF8", True):
