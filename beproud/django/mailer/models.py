@@ -135,4 +135,5 @@ def init_mailer():
         for canonical, codec_name in six.iteritems(CODECS):
             add_codec(canonical, codec_name)
 
+
 init_mailer()

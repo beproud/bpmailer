@@ -1,6 +1,4 @@
 #:coding=utf-8:
-from django.conf import settings
-
 try:
     from celery import shared_task
 except ImportError:
@@ -30,6 +28,7 @@ def send_mail(*args, **kwargs):
             countdown=retry_countdown,
             max_retries=max_retries,
         )
+
 
 @shared_task
 def send_template_mail(*args, **kwargs):

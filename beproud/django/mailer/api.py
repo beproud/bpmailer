@@ -3,18 +3,14 @@ import sys
 import traceback
 import logging
 import six
-
-StringIO = six.StringIO
-
-from email import encoders, charset, generator, message_from_string
-from email.utils import formatdate
 from six.moves import email_mime_base
-MIMEBase = email_mime_base.MIMEBase
 
-from email.mime.text import MIMEText
+from email import encoders, charset, message_from_string
+from email.utils import formatdate
 from email.message import Message
+from email.mime.text import MIMEText
+from email.mime.message import MIMEMessage
 
-import django
 from django.core import mail as django_mail
 from django.template.loader import render_to_string
 from django.conf import settings
@@ -45,6 +41,9 @@ __all__ = (
     'BadHeaderError',
 )
 
+StringIO = six.StringIO
+MIMEBase = email_mime_base.MIMEBase
+
 utf8_charset = charset.Charset('utf-8')
 
 # ガラケの場合は base64 じゃないとダメなやつが多いので、デフォルトで BASE64を使う。
@@ -54,6 +53,7 @@ if not getattr(settings, "EMAIL_USE_BASE64_FOR_UTF8", True):
     utf8_charset.body_encoding = None
 
 _old_safemimetext = django_mail.SafeMIMEText
+
 
 class SafeMIMEText(_old_safemimetext):
     def __init__(self, text, subtype, charset):
@@ -71,6 +71,7 @@ class SafeMIMEText(_old_safemimetext):
         else:
             MIMEText.__init__(self, text, subtype, charset)
 
+
 django_mail.SafeMIMEText = SafeMIMEText
 try:
     from django.core.mail import message as django_mail_message
@@ -78,14 +79,13 @@ try:
 except ImportError:
     pass
 
+
 SafeMIMEMultipart = django_mail.SafeMIMEMultipart
 BadHeaderError = django_mail.BadHeaderError
 get_connection = django_mail.get_connection
 forbid_multi_line_headers = django_mail.forbid_multi_line_headers
 make_msgid = django_mail.make_msgid
 
-
-from email.mime.message import MIMEMessage
 
 class SafeMIMEMessage(MIMEMessage):
     def __setitem__(self, name, val):

@@ -2,10 +2,8 @@
 
 import os
 import time
-import copy
 import logging
 import unittest
-from email import charset
 from itertools import chain
 from logging.handlers import BufferingHandler
 
@@ -76,6 +74,7 @@ class MailTestCase(object):
         mail_pre_send.recievers = []
         mail_post_send.recievers = []
 
+
 @override_settings(ADMINS=(('Admin', 'admin@example.net'),))
 @override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
 @override_settings(DEFAULT_CHARSET='utf-8')
@@ -92,7 +91,7 @@ class EmailMessageEncodingTestCase(MailTestCase, DjangoTestCase):
         message = message_obj.message()
 
         self.assertEqual(message['Subject'], '=?utf-8?b?5Lu25ZCN?=')
-    
+
     def test_email_message_utf_8(self):
         message_obj = EmailMessage(
                 u'件名',
@@ -105,7 +104,7 @@ class EmailMessageEncodingTestCase(MailTestCase, DjangoTestCase):
 
         self.assertEqual(message['Subject'], '=?utf-8?b?5Lu25ZCN?=')
 
-    # FIXME 
+    # FIXME
     @unittest.skip("Py3.6から動かない")
     def test_email_message_utf_8_alias(self):
         message_obj = EmailMessage(
@@ -119,7 +118,7 @@ class EmailMessageEncodingTestCase(MailTestCase, DjangoTestCase):
 
         self.assertEqual(message['Subject'], '=?utf-8?b?5Lu25ZCN?=')
 
-    # FIXME 
+    # FIXME
     @unittest.skip("Py3.6から動かない")
     def test_email_message_cp932_alias_sjis(self):
         message_obj = EmailMessage(
@@ -156,6 +155,7 @@ class EmailMessageEncodingTestCase(MailTestCase, DjangoTestCase):
         message = message_obj.message()
 
         self.assertEquals(message['Subject'], '=?iso-2022-jp?b?GyRCN29MPhsoQg==?=')
+
 
 @override_settings(ADMINS=(('Admin', 'admin@example.net'),))
 @override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
@@ -531,6 +531,7 @@ class TemplateContextTestCase(MailTestCase, DjangoTestCase):
         self.assertEquals(str(message['From']),
                           '=?utf-8?b?5beu5Ye65Lq6?= <example-from@example.net>')
 
+
 @override_settings(ADMINS=(('Admin', 'admin@example.net'),))
 @override_settings(MANAGERS=(('Manager', 'manager@example.net'),))
 @override_settings(DEFAULT_CHARSET='iso-2022-jp')
@@ -594,8 +595,8 @@ class SignalTest(MailTestCase, DjangoTestCase):
     def test_pre_send_signal(self):
         def pre_send_signal(sender, message, **kwargs):
             message.from_email = message.from_email.replace(u'\uff5e', u'\u301c')
-            message.to = [ x.replace(u'\uff5e', u'\u301c') for x in message.to ]
-            message.bcc = [ x.replace(u'\uff5e', u'\u301c') for x in message.bcc ]
+            message.to = [x.replace(u'\uff5e', u'\u301c') for x in message.to]
+            message.bcc = [x.replace(u'\uff5e', u'\u301c') for x in message.bcc]
             message.subject = message.subject.replace(u'\uff5e', u'\u301c')
             message.body = message.body.replace(u'\uff5e', u'\u301c')
         mail_pre_send.connect(pre_send_signal)
@@ -665,7 +666,6 @@ class MassMailTest(MailTestCase, DjangoTestCase):
                 self.assertEqual(message.get_payload(decode=True), "\xe6\x9c\xac\xe6\x96\x87")
             elif six.PY3:
                 self.assertEqual(message.get_payload(decode=True), b"\xe6\x9c\xac\xe6\x96\x87")
-                
 
     def test_mass_mail_encoding(self):
         send_mass_mail(((
@@ -744,7 +744,7 @@ class MassMailTest(MailTestCase, DjangoTestCase):
         self.assertEqual(message['Content-Type'], 'text/plain; charset="iso-2022-jp"')
         self.assertEqual(message.get_payload(), "\x1b$BK\\J8\x1b(B")
 
-    # FIXME 
+    # FIXME
     @unittest.skip("Py3.6から動かない")
     def test_mass_mail_encoding_inline2(self):
         send_mass_mail((
@@ -891,7 +891,6 @@ class MassMailTest(MailTestCase, DjangoTestCase):
                 self.assertEqual(message.get_payload(decode=True), "\xe6\x9c\xac\xe6\x96\x87")
             elif six.PY3:
                 self.assertEqual(message.get_payload(decode=True), b"\xe6\x9c\xac\xe6\x96\x87")
-
 
 
 @override_settings(ADMINS=(('Admin', 'admin@example.net'),))
