@@ -52,14 +52,12 @@ if not getattr(settings, "EMAIL_USE_BASE64_FOR_UTF8", True):
     # some spam filters.
     utf8_charset.body_encoding = None
 
-_old_safemimetext = django_mail.SafeMIMEText
 
-
-class SafeMIMEText(_old_safemimetext):
+class SafeMIMEText(django_mail.SafeMIMEText):
     def __init__(self, text, subtype, charset):
         self.encoding = charset
         # NOTE: utf8 でも utf-8 でも対応する
-        if charset.upper().replace("-", "") == 'UTF8':
+        if charset.upper() in  ('UTF8', 'UTF-8'):
             # Unfortunately, Python doesn't support setting a Charset instance
             # as MIMEText init parameter (http://bugs.python.org/issue16324).
             # We do it manually and trigger re-encoding of the payload.
