@@ -39,9 +39,10 @@ def read_file(filename):
 
 setup(
     name='bpmailer',
-    version='0.39',
+    version='0.39.1',
     description='Mailing utility for Django',
     long_description=read_file('README.md'),
+    long_description_content_type="text/markdown",
     author='BeProud Inc.',
     author_email='ian@beproud.jp',
     url='https://github.com/beproud/bpmailer/',
