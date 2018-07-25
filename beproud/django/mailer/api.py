@@ -1,17 +1,16 @@
 #:coding=utf-8:
-
 import sys
 import traceback
 import logging
-from StringIO import StringIO
+import six
+from six.moves import email_mime_base
 
-from email import Encoders, charset, generator, message_from_string
-from email.Utils import formatdate
-from email.MIMEBase import MIMEBase
-from email.mime.text import MIMEText
+from email import encoders, charset, message_from_string
+from email.utils import formatdate
 from email.message import Message
+from email.mime.text import MIMEText
+from email.mime.message import MIMEMessage
 
-import django
 from django.core import mail as django_mail
 from django.template.loader import render_to_string
 from django.conf import settings
@@ -42,7 +41,10 @@ __all__ = (
     'BadHeaderError',
 )
 
-utf8_charset = charset.Charset('UTF-8')
+StringIO = six.StringIO
+MIMEBase = email_mime_base.MIMEBase
+
+utf8_charset = charset.Charset('utf-8')
 
 # ガラケの場合は base64 じゃないとダメなやつが多いので、デフォルトで BASE64を使う。
 if not getattr(settings, "EMAIL_USE_BASE64_FOR_UTF8", True):
@@ -50,59 +52,23 @@ if not getattr(settings, "EMAIL_USE_BASE64_FOR_UTF8", True):
     # some spam filters.
     utf8_charset.body_encoding = None
 
-if django.VERSION > (1, 6):
-    _old_safemimetext = django_mail.SafeMIMEText
 
-    class SafeMIMEText(_old_safemimetext):
-        def __init__(self, text, subtype, charset):
-            self.encoding = charset
-            # NOTE: utf8 でも utf-8 でも対応する
-            if charset.upper().replace("-", "") == 'UTF8':
-                # Unfortunately, Python doesn't support setting a Charset instance
-                # as MIMEText init parameter (http://bugs.python.org/issue16324).
-                # We do it manually and trigger re-encoding of the payload.
-                MIMEText.__init__(self, text, subtype, None)
-                del self['Content-Transfer-Encoding']
-                self.set_payload(text, utf8_charset)
-                self.replace_header('Content-Type', 'text/%s; charset="%s"'
-                                    % (subtype, utf8_charset.get_output_charset()))
-            else:
-                MIMEText.__init__(self, text, subtype, charset)
-else:
-    class SafeMIMEText(MIMEText):
+class SafeMIMEText(django_mail.SafeMIMEText):
+    def __init__(self, text, subtype, charset):
+        self.encoding = charset
+        # NOTE: utf8 でも utf-8 でも対応する
+        if charset.upper() in  ('UTF8', 'UTF-8'):
+            # Unfortunately, Python doesn't support setting a Charset instance
+            # as MIMEText init parameter (http://bugs.python.org/issue16324).
+            # We do it manually and trigger re-encoding of the payload.
+            MIMEText.__init__(self, text, subtype, None)
+            del self['Content-Transfer-Encoding']
+            self.set_payload(text, utf8_charset)
+            self.replace_header('Content-Type', 'text/%s; charset="%s"'
+                                % (subtype, utf8_charset.get_output_charset()))
+        else:
+            MIMEText.__init__(self, text, subtype, charset)
 
-        def __init__(self, text, subtype, charset):
-            self.encoding = charset
-            if charset.upper().replace("-", "") == 'UTF8':
-                # Unfortunately, Python doesn't support setting a Charset instance
-                # as MIMEText init parameter (http://bugs.python.org/issue16324).
-                # We do it manually and trigger re-encoding of the payload.
-                MIMEText.__init__(self, text, subtype, None)
-                del self['Content-Transfer-Encoding']
-                self.set_payload(text, utf8_charset)
-                self.replace_header('Content-Type', 'text/%s; charset="%s"'
-                                    % (subtype, utf8_charset.get_output_charset()))
-            else:
-                MIMEText.__init__(self, text, subtype, charset)
-
-        def __setitem__(self, name, val):
-            name, val = forbid_multi_line_headers(name, val, self.encoding)
-            MIMEText.__setitem__(self, name, val)
-
-        def as_string(self, unixfrom=False, linesep='\n'):
-            """Return the entire formatted message as a string.
-            Optional `unixfrom' when True, means include the Unix From_ envelope
-            header.
-
-            This overrides the default as_string() implementation to not mangle
-            lines that begin with 'From '. See bug #13433 for details.
-            """
-            fp = StringIO()
-            g = generator.Generator(fp, mangle_from_=False)
-            g.flatten(self, unixfrom=unixfrom)
-            return fp.getvalue()
-
-        as_bytes = as_string
 
 django_mail.SafeMIMEText = SafeMIMEText
 try:
@@ -111,67 +77,25 @@ try:
 except ImportError:
     pass
 
+
 SafeMIMEMultipart = django_mail.SafeMIMEMultipart
 BadHeaderError = django_mail.BadHeaderError
 get_connection = django_mail.get_connection
 forbid_multi_line_headers = django_mail.forbid_multi_line_headers
 make_msgid = django_mail.make_msgid
 
-# NOTE: Django 1.4 では、SMTPConnectionはもうないので、
-#       なかったらスルーする
-if hasattr(django_mail, 'SMTPConnection'):
-    SMTPConnection = django_mail.SMTPConnection
-    __all__ = __all__ + ('SMTPConnection',)
 
-# NOTE: Django 1.6 以上の SafeMimeMessage
-if hasattr(django_mail, 'SafeMIMEMessage'):
-    SafeMIMEMessage = django_mail.SafeMIMEMessage
-else:
-    from email.mime.message import MIMEMessage
-
-    class SafeMIMEMessage(MIMEMessage):
-        def __setitem__(self, name, val):
-            # message/rfc822 attachments must be ASCII
-            name, val = forbid_multi_line_headers(name, val, 'ascii')
-            MIMEMessage.__setitem__(self, name, val)
+class SafeMIMEMessage(MIMEMessage):
+    def __setitem__(self, name, val):
+        # message/rfc822 attachments must be ASCII
+        name, val = forbid_multi_line_headers(name, val, 'ascii')
+        MIMEMessage.__setitem__(self, name, val)
 
 
 logger = logging.getLogger(getattr(settings, "EMAIL_LOGGER", ""))
 
 
 class EmailMessage(django_mail.EmailMessage):
-    def __init__(self, subject='', body='', from_email=None, to=None, bcc=None,
-                 connection=None, attachments=None, headers=None, cc=None):
-        super(EmailMessage, self).__init__(
-            subject=subject,
-            body=body,
-            from_email=from_email,
-            to=to,
-            bcc=bcc,
-            connection=connection,
-            attachments=attachments,
-            headers=headers,
-        )
-        # NOTE: Django 1.2 の場合の cc に対応
-        if cc:
-            assert not isinstance(cc, basestring), '"cc" argument must be a list or tuple'
-            self.cc = list(cc)
-        else:
-            self.cc = []
-
-    def get_connection(self, fail_silently=False):
-        if not self.connection:
-            self.connection = get_connection(fail_silently=fail_silently)
-        return self.connection
-
-    # NOTE: Django 1.2 の場合の cc に対応
-    def recipients(self):
-        """
-        Returns a list of all recipients of the email (includes direct
-        addressees as well as Cc and Bcc entries).
-        """
-        return self.to + self.cc + self.bcc
-
     def message(self):
         encoding = self.encoding or getattr(settings, "EMAIL_CHARSET", settings.DEFAULT_CHARSET)
         msg = SafeMIMEText(self.body, self.content_subtype, encoding)
@@ -223,7 +147,7 @@ class EmailMessage(django_mail.EmailMessage):
             # Encode non-text attachments with base64.
             attachment = MIMEBase(basetype, subtype)
             attachment.set_payload(content)
-            Encoders.encode_base64(attachment)
+            encoders.encode_base64(attachment)
         return attachment
 
     def send(self, *args, **kwargs):

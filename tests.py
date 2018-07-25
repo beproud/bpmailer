@@ -28,52 +28,42 @@ def main():
         }
     }
 
-    if django.VERSION > (1, 8):
-        global_settings.TEMPLATES = [
-            {
-                'BACKEND': 'django.template.backends.django.DjangoTemplates',
-                'DIRS': [],
-                'APP_DIRS': True,
-                'OPTIONS': {
-                    'context_processors': [
-                        'django.template.context_processors.debug',
-                        'django.template.context_processors.request',
-                        'django.contrib.auth.context_processors.auth',
-                        'django.contrib.messages.context_processors.messages',
-                    ],
-                },
+    global_settings.TEMPLATES = [
+        {
+            'BACKEND': 'django.template.backends.django.DjangoTemplates',
+            'DIRS': [],
+            'APP_DIRS': True,
+            'OPTIONS': {
+                'context_processors': [
+                    'django.template.context_processors.debug',
+                    'django.template.context_processors.request',
+                    'django.contrib.auth.context_processors.auth',
+                    'django.contrib.messages.context_processors.messages',
+                ],
             },
-        ]
+        },
+    ]
 
     # For Celery Tests
-    global_settings.CELERY_ALWAYS_EAGER = True
-    global_settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
+    global_settings.CELERY_TASK_ALWAYS_EAGER = True
+    global_settings.CELERY_TASK_EAGER_PROPAGATES = True
 
     import celery
-    if celery.VERSION >= (3, 1):
-        app = celery.Celery()
-        app.config_from_object('django.conf:settings')
-        app.autodiscover_tasks(lambda: global_settings.INSTALLED_APPS)
-    else:
-        global_settings.INSTALLED_APPS += ('djcelery',)
+    app = celery.Celery()
+    app.config_from_object('django.conf:settings', namespace='CELERY')
+    app.autodiscover_tasks(lambda: global_settings.INSTALLED_APPS)
 
-    if django.VERSION > (1, 7):
-        django.setup()
+    django.setup()
 
     from django.test.utils import get_runner
     test_runner = get_runner(global_settings)
 
-    if django.VERSION > (1, 2):
-        test_runner = test_runner()
-        if django.VERSION > (1, 6):
-            tests = ['beproud.django.mailer']
-        else:
-            tests = ['mailer']
-        failures = test_runner.run_tests(tests)
-    else:
-        failures = test_runner(['mailer'], verbosity=1)
+    test_runner = test_runner()
+    tests = ['beproud.django.mailer']
+    failures = test_runner.run_tests(tests)
 
     sys.exit(failures)
+
 
 if __name__ == '__main__':
     main()

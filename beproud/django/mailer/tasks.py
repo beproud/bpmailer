@@ -1,23 +1,8 @@
 #:coding=utf-8:
-from django.conf import settings
-
 try:
     from celery import shared_task
 except ImportError:
     from celery.task import task as shared_task
-
-import celery
-
-if celery.VERSION < (3, 1):
-    try:
-        import djcelery  # NOQA
-    except ImportError:
-        from django.core.exceptions import ImproperlyConfigured
-        raise ImproperlyConfigured("when used celery<3.1, djcelery is required!")
-
-    if 'djcelery' not in settings.INSTALLED_APPS:
-        from django.core.exceptions import ImproperlyConfigured
-        raise ImproperlyConfigured("djcelery not in INSTALLED_APPS!")
 
 from beproud.django.mailer import api as mailer_api
 
@@ -37,12 +22,13 @@ def send_mail(*args, **kwargs):
     retry_countdown = kwargs.pop('retry_countdown', 10)
     try:
         mailer_api.send_mail(*args, **kwargs)
-    except Exception, e:
+    except Exception as e:
         return send_mail.retry(
             exc=e,
             countdown=retry_countdown,
             max_retries=max_retries,
         )
+
 
 @shared_task
 def send_template_mail(*args, **kwargs):
@@ -50,7 +36,7 @@ def send_template_mail(*args, **kwargs):
     retry_countdown = kwargs.pop('retry_countdown', 10)
     try:
         mailer_api.send_template_mail(*args, **kwargs)
-    except Exception, e:
+    except Exception as e:
         return send_template_mail.retry(
             exc=e,
             countdown=retry_countdown,
@@ -64,7 +50,7 @@ def send_mass_mail(*args, **kwargs):
     retry_countdown = kwargs.pop('retry_countdown', 10)
     try:
         mailer_api.send_mass_mail(*args, **kwargs)
-    except Exception, e:
+    except Exception as e:
         return send_mass_mail.retry(
             exc=e,
             countdown=retry_countdown,
@@ -78,7 +64,7 @@ def mail_managers(*args, **kwargs):
     retry_countdown = kwargs.pop('retry_countdown', 10)
     try:
         mailer_api.mail_managers(*args, **kwargs)
-    except Exception, e:
+    except Exception as e:
         return mail_managers.retry(
             exc=e,
             countdown=retry_countdown,
@@ -92,7 +78,7 @@ def mail_managers_template(*args, **kwargs):
     retry_countdown = kwargs.pop('retry_countdown', 10)
     try:
         mailer_api.mail_managers_template(*args, **kwargs)
-    except Exception, e:
+    except Exception as e:
         return mail_managers_template.retry(
             exc=e,
             countdown=retry_countdown,
@@ -106,7 +92,7 @@ def mail_admins(*args, **kwargs):
     retry_countdown = kwargs.pop('retry_countdown', 10)
     try:
         mailer_api.mail_admins(*args, **kwargs)
-    except Exception, e:
+    except Exception as e:
         return mail_admins.retry(
             exc=e,
             countdown=retry_countdown,
