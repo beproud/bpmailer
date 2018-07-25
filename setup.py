@@ -28,10 +28,20 @@ except ImportError:
 
 from setuptools import setup, find_packages
 
+def read_file(filename):
+    basepath = os.path.dirname(os.path.dirname(__file__))
+    filepath = os.path.join(basepath, filename)
+    if os.path.exists(filepath):
+        return open(filepath).read()
+    else:
+        return ''
+
+
 setup(
     name='bpmailer',
-    version='0.38',
+    version='0.39',
     description='Mailing utility for Django',
+    long_description=read_file('README.md'),
     author='BeProud Inc.',
     author_email='ian@beproud.jp',
     url='https://github.com/beproud/bpmailer/',
@@ -47,8 +57,9 @@ setup(
     include_package_data=True,
     packages=find_packages(),
     namespace_packages=['beproud', 'beproud.django'],
-    install_requires=['Django>=1.8'],
+    install_requires=['Django>=1.8', 'six'],
     tests_require=['celery>=4.1', 'mock>=0.7.2'],
     test_suite='tests.main',
     zip_safe=False,
+    keywords=['django', 'mail']
 )
