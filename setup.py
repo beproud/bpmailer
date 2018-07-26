@@ -32,14 +32,16 @@ def read_file(filename):
     basepath = os.path.dirname(os.path.dirname(__file__))
     filepath = os.path.join(basepath, filename)
     if os.path.exists(filepath):
-        return open(filepath).read()
+        with open(filepath) as f:
+            read_text = f.read()
+        return read_text
     else:
         return ''
 
 
 setup(
     name='bpmailer',
-    version='1.0',
+    version='0.39.3',
     description='Mailing utility for Django',
     long_description=read_file('README.md'),
     long_description_content_type="text/markdown",
