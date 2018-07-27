@@ -1,15 +1,10 @@
 language: python
 sudo: false
+
+install:
+  - pip install tox-travis
 python:
     - 2.7
     - 3.6
-env:
-  matrix:
-    - TOXENV=py27-django18
-    - TOXENV=py27-django111
-    - TOXENV=py36-django18
-    - TOXENV=py36-django111
 
-install:
-  - pip install tox
 script: tox
