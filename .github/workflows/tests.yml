@@ -23,5 +23,6 @@ jobs:
         python -m pip install tox tox-gh-actions
         python -m pip install Django==2.2.27
         python -m pip install celery==4.1.0
+        python -m pip install mock>=0.7.2
     - name: Test
       run: python tests.py
