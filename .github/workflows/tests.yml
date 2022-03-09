@@ -1,35 +1,36 @@
 name: Tests
 
-# Triggers the workflow on push or pull request events
+# push と pull request イベント毎にGtihubのWorkflowを起動する
 on:
   - push
   - pull_request
 
 jobs:
+  # ジョブの名称を定義
   test_with_tox:
     runs-on: ubuntu-latest
 
-    # Define a variation to execute a job
+    # 並列して実行する各ジョブにおけるPython実行環境のバリエーションを定義
     strategy:
       matrix:
         python-version: [3.6, 3.9]
 
     steps:
-    # Checkout the source code
+    # ソースコードをチェックアウト
     - uses: actions/checkout@v2
 
-    # Set up a Python environment to run tests
+    # 実行するジョブにおけるテストを実行するためのPython環境を設定
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
 
-    # Install the packages needed to run tox from github actions
+    # Github Actionsからtoxを実行するために必要なパッケージをインストール
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install tox tox-gh-actions
 
-    # Run tox from github actions
+    # Github Actionsからtoxを実行
     - name: Test with tox
       run: tox
