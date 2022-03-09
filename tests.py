@@ -56,11 +56,15 @@ def main():
     django.setup()
 
     from django.test.utils import get_runner
-    test_runner = get_runner(global_settings)
 
-    test_runner = test_runner()
-    tests = ['beproud.django.mailer']
-    failures = test_runner.run_tests(tests)
+    # Get a Django test runner class
+    TestRunner = get_runner(global_settings)
+
+    # Create a test runner object
+    test_runner = TestRunner()
+
+    # set 'bpmailer unit test path' and run the unit test
+    failures = test_runner.run_tests(['beproud.django.mailer.tests'])
 
     sys.exit(failures)
 
