@@ -63,7 +63,7 @@ def main():
     # Create a test runner object
     test_runner = TestRunner()
 
-    # set 'bpmailer unit test path' and run the unit test
+    # Set 'bpmailer unit test path' and run the unit test
     failures = test_runner.run_tests(['beproud.django.mailer.tests'])
 
     sys.exit(failures)
