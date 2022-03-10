@@ -33,4 +33,6 @@ jobs:
 
     # Github Actionsからtoxを実行
     - name: Test with tox
-      run: tox
+      run: |
+        tox -l
+        tox
