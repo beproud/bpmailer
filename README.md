@@ -2,6 +2,6 @@
 
 # Requirements
 
-* Python (2.7, 3.6, 3.9)
+* Python (3.6, 3.9)
 * Celery (4.1)
 * Django (1.11, 2.2)
