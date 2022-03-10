@@ -57,13 +57,13 @@ def main():
 
     from django.test.utils import get_runner
 
-    # Djangoのtest runnerクラスを取得
+    # Get Django test runner class
     TestRunner = get_runner(global_settings)
 
-    # test runnerオブジェクトを生成
+    # Create a test runner object
     test_runner = TestRunner()
 
-    # test runnerにbpmailerの単体テストのPathを渡して、bpmailerの単体テストを実行する
+    # Set the bpmailer unit test path to test runner, and run Unit Test
     failures = test_runner.run_tests(['beproud.django.mailer.tests'])
 
     sys.exit(failures)
