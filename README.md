@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/beproud/bpnotify.svg?branch=master)](https://travis-ci.org/beproud/bpnotify)
+![tox status](https://github.com/beproud/bpmailer/actions/workflows/tests.yml/badge.svg)
 
 # Requirements
 
