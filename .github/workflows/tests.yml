@@ -12,8 +12,13 @@ jobs:
 
     # 並列して実行する各ジョブのPythonバージョン
     strategy:
+      max-parallel: 4
       matrix:
-        python-version: [3.6, 3.9]
+        python-version: ['3.6', '3.9']
+        django-version: ['1.11', '2.2']
+        exclude:
+          - django-version: '1.11'
+            python-version: '3.9'
 
     steps:
     # ソースコードをチェックアウト
