@@ -15,10 +15,7 @@ jobs:
       max-parallel: 4
       matrix:
         python-version: ['3.6', '3.9']
-        django-version: ['1.11', '2.2']
-        exclude:
-          - django-version: '1.11'
-            python-version: '3.9'
+        django-version: ['2.2']
 
     steps:
     # ソースコードをチェックアウト
