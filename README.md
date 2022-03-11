@@ -1,4 +1,4 @@
-![tox status](https://github.com/beproud/bpmailer/actions/workflows/tests.yml/badge.svg?event=push)
+![tox status](https://github.com/beproud/bpmailer/actions/workflows/tests.yml/badge.svg)
 
 # Requirements
 
