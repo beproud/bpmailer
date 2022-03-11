@@ -1,0 +1,5 @@
+# toxを使用せず、直接 python tests.py で単体テスト実行する際に pip installするパッケージ一覧です。
+celery==4.1.0
+Django==2.2.27
+mock==4.0.3
+six==1.15.0

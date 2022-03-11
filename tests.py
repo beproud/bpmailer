@@ -56,11 +56,15 @@ def main():
     django.setup()
 
     from django.test.utils import get_runner
-    test_runner = get_runner(global_settings)
 
-    test_runner = test_runner()
-    tests = ['beproud.django.mailer']
-    failures = test_runner.run_tests(tests)
+    # Djangoのtest runnerクラスを取得
+    TestRunner = get_runner(global_settings)
+
+    # test runnerオブジェクトを生成
+    test_runner = TestRunner()
+
+    # test runnerにbpmailerの単体テストのPathを渡して、bpmailerの単体テストを実行する
+    failures = test_runner.run_tests(['beproud.django.mailer.tests'])
 
     sys.exit(failures)
 
