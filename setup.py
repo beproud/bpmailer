@@ -60,7 +60,7 @@ setup(
     include_package_data=True,
     packages=find_packages(),
     namespace_packages=['beproud', 'beproud.django'],
-    install_requires=['Django>=1.11', 'six'],
+    install_requires=['Django>=2.2', 'six'],
     test_suite='tests.main',
     zip_safe=False,
     keywords=['django', 'mail']
