@@ -48,6 +48,7 @@ setup(
     author='BeProud Inc.',
     author_email='project@beproud.jp',
     url='https://github.com/beproud/bpmailer/',
+    python_requires='>=3.6',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'License :: OSI Approved :: BSD License',
