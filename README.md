@@ -1,6 +1,4 @@
-.. image:: https://github.com/beproud/bpmailer/actions/workflows/tests.yml/badge.svg
-   :target: https://github.com/beproud/bpmailer/actions
-   :alt: GitHub Actions
+![tox status](https://github.com/beproud/bpmailer/actions/workflows/tests.yml/badge.svg?event=push)
 
 # Requirements
 
