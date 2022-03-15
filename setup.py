@@ -41,7 +41,7 @@ def read_file(filename):
 
 setup(
     name='bpmailer',
-    version='1.1',
+    version='1.2',
     description='Mailing utility for Django',
     long_description=read_file('README.md'),
     long_description_content_type="text/markdown",
