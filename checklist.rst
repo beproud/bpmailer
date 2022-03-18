@@ -51,7 +51,7 @@ TestPyPIに同じバージョンで、再アップロードしたい時
 
 postN(Post-release segment)のバージョン番号を変更して再度アップロードする
 
-次の postNの部分を、post1, post2, post3 ...などと変更する)
+次の postNの部分を、post1, post2, post3 ...などと変更する
 
 * ``python setup.py egg_info --tag-build=postN sdist bdist_wheel``
 
