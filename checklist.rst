@@ -35,7 +35,7 @@
    * ``pip freeze | grep bpmailer``
 
 7. Githubで次バージョンのRelaseタグを作成して、Publish Releaseする
-8. 本番アップロード用のパッケージをビルドし、パッケージ名を確認する
+8. もしTestPyPIでの確認用にパッケージ名を変更している場合、本番アップロード用のパッケージを再ビルドする。
 
    * ``python setup.py sdist bdist_wheel``
 
