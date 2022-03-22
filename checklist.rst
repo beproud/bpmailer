@@ -27,15 +27,15 @@
    * ``python -m twine upload --repository testpypi dist/*``
 
 4. TestPyPIでdescriptionが正しく表示されていること、ビルドしたパッケージがアップロードされていることを確認する
-5. もしTestPyPIでのアップロードに失敗していた場合、下記の「備考」を参考にパッケージのバージョンを変更して再度アップロードする
+5. もしTestPyPIでのアップロードが失敗していた場合、下記の「備考」を参考にパッケージのバージョンを変更して再度アップロードする
 6. ローカル環境にて、pipでTestPyPIにアップロードしたパッケージがインストール可能であることを確認する
 
-   * ``pip install Django~=2.2 Celery~=4.1 six``
+   * ``pip install Django~=2.2 Celery==4.1.1 six``
    * ``pip install -i https://test.pypi.org/simple/ bpmailer``
    * ``pip freeze | grep bpmailer``
 
 7. GitHubで次バージョンのReleaseタグを作成して、Publish Releaseする
-8. もしTestPyPIでの確認用にパッケージ名を変更している場合、本番アップロード用のパッケージを再ビルドする。
+8. もしTestPyPIでの確認用にパッケージ名を変更している場合、本番アップロード用のパッケージを再ビルドする
 
    * ``python setup.py sdist bdist_wheel``
 
@@ -49,9 +49,11 @@
 TestPyPIに同じバージョンで、再アップロードしたい時
 --------------------------------------------------
 
-postN(Post-release segment)のバージョン番号を変更して再度アップロードする
+TestPyPIとPyPIでは、同じバージョンのパッケージを再度アップロードすることができません。
 
-次の postNの部分を、post1, post2, post3 ...などと変更する
+そのため、TestPyPIでメタ情報のアップロードに失敗した場合は、本番環境のバージョン番号に影響を与えないように、postN(Post-release segment)のバージョン番号を変更して再度アップロードします。
+
+次の postNの部分を、post1, post2, post3 ...などと変更して、異なるバージョンのパッケージを作成します。
 
 * ``python setup.py egg_info --tag-build=postN sdist bdist_wheel``
 
