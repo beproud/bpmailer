@@ -6,7 +6,7 @@
 
 * TestPyPIのアカウントを取得する
 * PyPIのアカウントを取得する
-* Githubアカウントに、bpmailerの編集権限を付与してもらう
+* GitHubアカウントに、bpmailerの編集権限を付与してもらう
 * パッケージのビルドに使用するパッケージをインストールする
 
   * ``pip install wheel twine``
