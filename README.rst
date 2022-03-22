@@ -8,3 +8,8 @@ Requirements
 * Python (3.6, 3.9)
 * Celery (4.1)
 * Django (2.2)
+
+Links
+=================
+
+* `release checklist </release_checklist.rst>`_
