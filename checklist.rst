@@ -26,8 +26,8 @@
 
    * ``python -m twine upload --repository testpypi dist/*``
 
-4. TestPyPIの表示を確認する
-5. もしTestPyPIでの表示が正しくない場合、下記の「備考」を参考にパッケージのバージョンを変更して再度アップロードする
+4. TestPyPIでdescriptionが正しく表示されていること、ビルドしたパッケージがアップロードされていることを確認する
+5. もしTestPyPIでのアップロードに失敗していた場合、下記の「備考」を参考にパッケージのバージョンを変更して再度アップロードする
 6. ローカル環境にて、pipでTestPyPIにアップロードしたパッケージがインストール可能であることを確認する
 
    * ``pip install Django~=2.2 Celery~=4.1 six``
