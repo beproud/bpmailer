@@ -34,7 +34,7 @@
    * ``pip install -i https://test.pypi.org/simple/ bpmailer``
    * ``pip freeze | grep bpmailer``
 
-7. Githubで次バージョンのRelaseタグを作成して、Publish Releaseする
+7. Githubで次バージョンのReleaseタグを作成して、Publish Releaseする
 8. もしTestPyPIでの確認用にパッケージ名を変更している場合、本番アップロード用のパッケージを再ビルドする。
 
    * ``python setup.py sdist bdist_wheel``
