@@ -26,7 +26,7 @@
 
 4. TestPyPIで、descriptionがエラーなく表示されていることと、ビルドしたパッケージがアップロードされていることを確認する
 
-   * もしTestPyPIへアップロードした内容に問題がある場合、そのパッケージを削除し、postN(Post-release segment)のバージョン番号を付加したパッケージをTestPyPIに再度アップロードする
+   * もしTestPyPIへアップロードした内容に問題がある場合、そのパッケージを削除し、修正したパッケージをTestPyPIに再度アップロードする
    * ``rm -fr dist``
    * ``python setup.py egg_info --tag-build=postN sdist bdist_wheel`` (postN: post1, post2..)
    * ``twine upload --repository testpypi dist/*``
