@@ -12,4 +12,4 @@ Requirements
 Links
 =================
 
-* `release checklist </release_checklist.rst>`_
+* `release checklist <https://github.com/beproud/bpmailer/blob/master/release_checklist.rst>`_
