@@ -26,10 +26,12 @@
 
 4. TestPyPIで、descriptionがエラーなく表示されていることと、ビルドしたパッケージがアップロードされていることを確認する
 
-   * もしTestPyPIへアップロードした内容に問題がある場合、そのパッケージを削除し、修正したパッケージをTestPyPIに再度アップロードする
-   * ``rm -fr dist``
-   * ``python setup.py egg_info --tag-build=postN sdist bdist_wheel`` (postN: post1, post2..)
-   * ``twine upload --repository testpypi dist/*``
+   * もしTestPyPIへアップロードした内容に問題がある場合:
+
+     * dist/のパッケージを削除し、修正したパッケージをTestPyPIに再度アップロードする
+     * ``rm -fr dist``
+     * ``python setup.py egg_info --tag-build=postN sdist bdist_wheel`` (postN: post1, post2..)
+     * ``twine upload --repository testpypi dist/*``
 
 5. ローカル環境にて、TestPyPIにアップロードしたパッケージがインストール可能であることを確認する
 
@@ -39,9 +41,11 @@
 
 6. GitHubで次バージョンのReleaseタグを作成し、Publish Releaseする
 
-   * もしdist/にpostNバージョンがついたパッケージが残っている場合、それらのパッケージを全て削除し、本番アップロード用のパッケージを再度作成する
-   * ``rm -fr dist``
-   * ``python setup.py sdist bdist_wheel``
+   * もしdist/にpostNバージョンがついたパッケージが残っている場合:
+
+     * それらのパッケージを全て削除し、本番アップロード用のパッケージを再度作成する
+     * ``rm -fr dist``
+     * ``python setup.py sdist bdist_wheel``
 
 7. dist/に作成したパッケージを本番環境のPyPIにアップロードする
 
