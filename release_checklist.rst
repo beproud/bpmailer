@@ -5,39 +5,39 @@
 --------------
 
 * GitHub, PyPI, TestPyPIのアカウントにbpmailerの編集権限を設定
-* パッケージのビルドに使用するパッケージをインストールする
+* パッケージのビルドに使用パッケージをインストール
 
   * ``pip install wheel twine``
 
 
 手順
 --------------------
-1. 次バージョンのパッケージをビルドする
+1. 次バージョンのパッケージをビルド
 
    * ``python setup.py sdist bdist_wheel``
 
-2. twineのコマンドを実行して、エラーが出ないことを確認する
+2. twineのコマンドを実行して、エラーが出ないことを確認
 
    * ``twine check --strict dist/*``
 
-3. dist/に作成したパッケージをTestPyPIへアップロードする
+3. dist/に作成したパッケージをTestPyPIへアップロード
 
    * ``twine upload --repository testpypi dist/*``
 
-4. TestPyPIで、descriptionがエラーなく表示されていることと、ビルドしたパッケージがアップロードされていることを確認する
+4. TestPyPIで、descriptionがエラーなく表示されていることと、ビルドしたパッケージがアップロードされていることを確認
 
-   * TestPyPIへアップロードした内容に問題がある場合、修正したパッケージをTestPyPIに再度アップロードする
+   * TestPyPIへアップロードした内容に問題がある場合、修正したパッケージをTestPyPIに再度アップロード
 
-5. ローカル環境にて、TestPyPIにアップロードしたパッケージがインストール可能であることを確認する
+5. ローカル環境にて、TestPyPIにアップロードしたパッケージがインストール可能であることを確認
 
    * ``pip install Django~=2.2 Celery~=4.1.0 six``
    * ``pip install -i https://test.pypi.org/simple/ bpmailer``
    * ``pip show bpmailer``
 
-6. GitHubで次バージョンのReleaseタグを作成し、Publish Releaseする
+6. GitHubで次バージョンのReleaseタグを作成し、Publish Releaseを実行
 
-   * dist/にpostNバージョンがついたパッケージが残っている場合、それらのパッケージを全て削除し、本番アップロード用のパッケージを再度作成する
+   * dist/にpostNバージョンがついたパッケージが残っている場合、それらのパッケージを全て削除し、本番アップロード用のパッケージを再度作成
 
-7. dist/に作成したパッケージを本番環境のPyPIにアップロードする
+7. dist/に作成したパッケージを本番環境のPyPIにアップロード
 
    * ``twine upload dist/*``
