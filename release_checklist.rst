@@ -28,16 +28,10 @@
 
    * TestPyPIへアップロードした内容に問題がある場合、修正したパッケージをTestPyPIに再度アップロード
 
-5. ローカル環境にて、TestPyPIにアップロードしたパッケージがインストール可能であることを確認
-
-   * ``pip install Django~=2.2 Celery~=4.1.0 six``
-   * ``pip install -i https://test.pypi.org/simple/ bpmailer``
-   * ``pip show bpmailer``
-
-6. GitHubで次バージョンのReleaseタグを作成し、Publish Releaseを実行
+5. GitHubで次バージョンのReleaseタグを作成し、Publish Releaseを実行
 
    * dist/にpostNバージョンがついたパッケージが残っている場合、それらのパッケージを全て削除し、本番アップロード用のパッケージを再度作成
 
-7. dist/に作成したパッケージを本番環境のPyPIにアップロード
+6. dist/に作成したパッケージを本番環境のPyPIにアップロード
 
    * ``twine upload dist/*``
