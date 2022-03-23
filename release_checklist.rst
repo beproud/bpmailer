@@ -4,9 +4,7 @@
 事前準備
 --------------
 
-* TestPyPIのアカウントを取得し、bpmailerの編集権限を付与してもらう
-* PyPIのアカウントを取得し、bpmailerの編集権限を付与してもらう
-* GitHubアカウントに、bpmailerの編集権限を付与してもらう
+* GitHub, PyPI, TestPyPIのアカウントにbpmailerの編集権限を設定
 * パッケージのビルドに使用するパッケージをインストールする
 
   * ``pip install wheel twine``
