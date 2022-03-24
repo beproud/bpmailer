@@ -5,7 +5,7 @@
 --------------
 
 * GitHub, PyPI, TestPyPIのアカウントにbpmailerの編集権限を設定
-* パッケージのビルドに使用パッケージをインストール
+* パッケージのビルドに使用するパッケージをインストール
 
   * ``pip install wheel twine``
 
