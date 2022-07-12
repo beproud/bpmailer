@@ -5,8 +5,8 @@
 Requirements
 ============
 
-* Python (3.6, 3.9)
-* Celery (4.1)
+* Python (3.9)
+* Celery (5.x)
 * Django (2.2)
 
 Links
