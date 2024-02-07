@@ -7,14 +7,14 @@
 * GitHub, PyPI, TestPyPIのアカウントにbpmailerの編集権限を設定
 * パッケージのビルドに使用するパッケージをインストール
 
-  * ``pip install wheel twine``
+  * ``pip install wheel twine build``
 
 
 手順
 --------------------
 1. 次バージョンのパッケージをビルド
 
-   * ``python setup.py sdist bdist_wheel``
+   * ``python -m build .``
 
 2. twineのコマンドを実行して、エラーが出ないことを確認
 
